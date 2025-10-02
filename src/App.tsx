@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 function App() {
   const [activeTab, setActiveTab] = useState('chat');
   const [selectedBackground, setSelectedBackground] = useState('/backgrounds/mbckgrd1.jpg');
   const [selectedAvatar, setSelectedAvatar] = useState('/avatars/avatar_01.jpeg');
   const [showBackgroundMenu, setShowBackgroundMenu] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Background and avatar mappings
   const backgrounds = [
@@ -19,6 +21,52 @@ function App() {
     const bg = backgrounds.find(b => b.value === backgroundValue);
     if (bg) {
       setSelectedAvatar(bg.avatar);
+    }
+  };
+
+  // File upload handlers
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const newImages: string[] = [];
+    
+    Array.from(files).forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            newImages.push(e.target.result as string);
+            setUploadedImages(prev => [...prev, e.target!.result as string]);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  const handleSingleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = 'image/*';
+      fileInputRef.current.multiple = false;
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleBulkUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = 'image/*';
+      fileInputRef.current.multiple = true;
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFolderUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = 'image/*';
+      fileInputRef.current.multiple = true;
+      fileInputRef.current.webkitdirectory = true;
+      fileInputRef.current.click();
     }
   };
 
@@ -153,23 +201,77 @@ function App() {
           {activeTab === 'wardrobe' && (
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
               <h2 className="text-2xl font-bold text-purple-700 mb-6">Build Your Wardrobe</h2>
+              
+              {/* Upload Options */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50">
+                <button 
+                  onClick={handleSingleUploadClick}
+                  className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                >
                   <div className="text-4xl mb-2">📸</div>
                   <p className="font-semibold">Single Images</p>
                   <p className="text-sm text-gray-600">Upload individual clothing items</p>
-                </div>
-                <div className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50">
+                </button>
+                <button 
+                  onClick={handleBulkUploadClick}
+                  className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                >
                   <div className="text-4xl mb-2">📚</div>
                   <p className="font-semibold">Bulk Upload</p>
                   <p className="text-sm text-gray-600">Upload multiple items at once</p>
-                </div>
-                <div className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50">
+                </button>
+                <button 
+                  onClick={handleFolderUploadClick}
+                  className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                >
                   <div className="text-4xl mb-2">📁</div>
                   <p className="font-semibold">Folder Upload</p>
                   <p className="text-sm text-gray-600">Upload entire folders</p>
-                </div>
+                </button>
               </div>
+
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              {/* Uploaded Images Gallery */}
+              {uploadedImages.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-xl font-semibold text-purple-700 mb-4">Your Wardrobe ({uploadedImages.length} items)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {uploadedImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img 
+                          src={image} 
+                          alt={`Wardrobe item ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-purple-200"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <button 
+                            onClick={() => setUploadedImages(prev => prev.filter((_, i) => i !== index))}
+                            className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {uploadedImages.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">👕</div>
+                  <p className="text-gray-500 text-lg">No items in your wardrobe yet</p>
+                  <p className="text-gray-400">Upload some clothing items to get started!</p>
+                </div>
+              )}
             </div>
           )}
 
