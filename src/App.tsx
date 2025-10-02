@@ -37,7 +37,7 @@ function App() {
         
         {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto w-full">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-4">
               <img 
                 src="/logo.png" 
@@ -51,6 +51,7 @@ function App() {
               </div>
             </div>
             
+            {/* Navigation Menu Below Title */}
             <div className="flex items-center gap-4">
               {/* Navigation Tabs as Icons */}
               <div className="flex gap-3">
@@ -85,7 +86,7 @@ function App() {
                 </button>
                 
                 {showBackgroundMenu && (
-                  <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
                     <div className="flex flex-col gap-2">
                       {backgrounds.map((bg) => (
                         <button
