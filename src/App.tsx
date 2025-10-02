@@ -70,6 +70,8 @@ function App() {
     if (fileInputRef.current) {
       fileInputRef.current.accept = 'image/*';
       fileInputRef.current.multiple = false;
+      // Remove any capture attribute to ensure gallery opens by default
+      fileInputRef.current.removeAttribute('capture');
       fileInputRef.current.click();
     }
   };
@@ -78,6 +80,7 @@ function App() {
     if (fileInputRef.current) {
       fileInputRef.current.accept = 'image/*';
       fileInputRef.current.multiple = true;
+      fileInputRef.current.removeAttribute('capture');
       fileInputRef.current.click();
     }
   };
@@ -87,6 +90,7 @@ function App() {
       fileInputRef.current.accept = 'image/*';
       fileInputRef.current.multiple = true;
       fileInputRef.current.webkitdirectory = true;
+      fileInputRef.current.removeAttribute('capture');
       fileInputRef.current.click();
     }
   };
@@ -105,16 +109,87 @@ function App() {
     setShowEventModal(true);
   };
 
-  const handleEventSelect = (eventType: string) => {
+  const handleEventSelect = async (eventType: string) => {
     setShowEventModal(false);
     setIsGenerating(true);
     
-    // Simulate AI processing (in a real app, this would call an AI API)
-    setTimeout(() => {
+    try {
+      // Direct Gemini 2.5 Flash Image Preview API call
+      const generatedImage = await callGeminiAPI(uploadedImages, selectedAvatar, eventType, apiKey);
+      setGeneratedOutfit(generatedImage);
+    } catch (error) {
+      console.error('AI generation failed:', error);
+      alert('Outfit generation failed. Please check your API key and try again.');
+      setGeneratedOutfit(selectedAvatar); // Fallback to original avatar
+    } finally {
       setIsGenerating(false);
-      // In a real implementation, this would be the AI-generated outfit image
-      setGeneratedOutfit(selectedAvatar); // Using avatar as placeholder for now
-    }, 3000);
+    }
+  };
+
+  // Simple Gemini 2.5 Flash Image Preview API integration
+  const callGeminiAPI = async (clothingImages: string[], avatarImage: string, eventType: string, apiKey: string) => {
+    const prompt = `Please dress the anime girl up with the clothes here proposed for a ${eventType} event. Create a complete, fashionable anime-style outfit.`;
+    
+    // Prepare images for Gemini (convert data URLs to base64 without prefix)
+    const imageParts = [
+      {
+        inline_data: {
+          mime_type: "image/jpeg",
+          data: avatarImage.split(',')[1]
+        }
+      },
+      ...clothingImages.slice(0, 4).map(img => ({
+        inline_data: {
+          mime_type: "image/jpeg",
+          data: img.split(',')[1]
+        }
+      }))
+    ];
+
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            ...imageParts
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.8,
+        topK: 32,
+        topP: 0.95,
+        maxOutputTokens: 2048,
+      }
+    };
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp-image-generation-preview-05-05:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    // Extract the generated image from the response
+    // Gemini 2.5 Flash Image Preview returns images in the response
+    const imagePart = data.candidates[0].content.parts.find((part: any) => part.inline_data);
+    
+    if (imagePart && imagePart.inline_data) {
+      return `data:image/jpeg;base64,${imagePart.inline_data.data}`;
+    } else {
+      throw new Error('No image generated in response');
+    }
   };
 
   const handleRegenerateOutfit = () => {
