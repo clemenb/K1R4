@@ -103,7 +103,7 @@ function App() {
             <div className="flex items-center gap-4">
               {/* Navigation Tabs as Icons */}
               <div className="flex gap-3">
-                {['wardrobe', 'outfit'].map((tab) => (
+                {['chat', 'wardrobe', 'outfit'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -112,8 +112,9 @@ function App() {
                         ? 'text-white scale-110'
                         : 'text-white/70 hover:text-white hover:scale-105'
                     }`}
-                    title={tab === 'wardrobe' ? 'Wardrobe Builder' : 'Outfit Suggester'}
+                    title={tab === 'chat' ? 'Chat' : tab === 'wardrobe' ? 'Wardrobe Builder' : 'Outfit Suggester'}
                   >
+                    {tab === 'chat' && '💬'}
                     {tab === 'wardrobe' && '👕'}
                     {tab === 'outfit' && '👗'}
                   </button>
