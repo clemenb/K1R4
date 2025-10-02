@@ -67,26 +67,27 @@ function App() {
               </button>
               
               {showBackgroundMenu && (
-                <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 min-w-48 z-50">
-                  {backgrounds.map((bg) => (
-                    <button
-                      key={bg.value}
-                      onClick={() => {
-                        handleBackgroundChange(bg.value);
-                        setShowBackgroundMenu(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all ${
-                        selectedBackground === bg.value ? 'bg-purple-100 text-purple-700' : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      <img 
-                        src={bg.avatar} 
-                        alt={bg.label}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <span>{bg.label}</span>
-                    </button>
-                  ))}
+                <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
+                  <div className="flex flex-col gap-2">
+                    {backgrounds.map((bg) => (
+                      <button
+                        key={bg.value}
+                        onClick={() => {
+                          handleBackgroundChange(bg.value);
+                          setShowBackgroundMenu(false);
+                        }}
+                        className={`w-16 h-16 rounded-lg border-2 overflow-hidden transition-all ${
+                          selectedBackground === bg.value ? 'border-white shadow-lg' : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        <img 
+                          src={bg.value} 
+                          alt={bg.label}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
