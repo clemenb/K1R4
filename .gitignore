@@ -11,7 +11,6 @@ dist-ssr
 *.local
 # Build outputs
 /dist
-/docs
 # But keep these files in root:
 !.nojekyll
 !CNAME
