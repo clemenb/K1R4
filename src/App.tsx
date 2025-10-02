@@ -9,6 +9,11 @@ function App() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [apiKey, setApiKey] = useState<string>(() => {
+    // Check if API key exists in localStorage
+    return localStorage.getItem('gemini_api_key') || '';
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Background and avatar mappings
@@ -87,6 +92,11 @@ function App() {
       alert('Please upload some clothing items to your wardrobe first!');
       return;
     }
+    
+    if (!checkApiKeyBeforeGeneration()) {
+      return;
+    }
+    
     setShowEventModal(true);
   };
 
@@ -105,6 +115,26 @@ function App() {
   const handleRegenerateOutfit = () => {
     setGeneratedOutfit(null);
     setShowEventModal(true);
+  };
+
+  // API Key management
+  const handleSaveApiKey = (key: string) => {
+    localStorage.setItem('gemini_api_key', key);
+    setApiKey(key);
+    setShowApiKeyModal(false);
+  };
+
+  const handleRemoveApiKey = () => {
+    localStorage.removeItem('gemini_api_key');
+    setApiKey('');
+  };
+
+  const checkApiKeyBeforeGeneration = () => {
+    if (!apiKey) {
+      setShowApiKeyModal(true);
+      return false;
+    }
+    return true;
   };
 
   return (
@@ -406,6 +436,95 @@ function App() {
                     >
                       Cancel
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* API Key Setup Modal */}
+              {showApiKeyModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <h3 className="text-2xl font-bold text-purple-700 mb-4">Set Up Your AI Assistant</h3>
+                    
+                    <div className="space-y-6">
+                      {/* Step 1 */}
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
+                          <h4 className="font-semibold text-purple-800">Go to Google AI Studio</h4>
+                        </div>
+                        <p className="text-gray-600 mb-3">Click the button below to open Google AI Studio in a new tab:</p>
+                        <a 
+                          href="https://aistudio.google.com/app/apikey" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          Open Google AI Studio
+                        </a>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
+                          <h4 className="font-semibold text-purple-800">Create Your API Key</h4>
+                        </div>
+                        <p className="text-gray-600 mb-2">Once the page loads:</p>
+                        <ol className="list-decimal list-inside text-gray-600 space-y-1">
+                          <li>Click "Create API Key"</li>
+                          <li>Select "Create API Key in new project"</li>
+                          <li>Copy the generated API key</li>
+                        </ol>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
+                          <h4 className="font-semibold text-purple-800">Paste Your API Key</h4>
+                        </div>
+                        <p className="text-gray-600 mb-3">Paste your API key here (it will be saved securely in your browser):</p>
+                        <input
+                          type="password"
+                          placeholder="Paste your Gemini API key here..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          onChange={(e) => setApiKey(e.target.value)}
+                          value={apiKey}
+                        />
+                        <p className="text-sm text-gray-500 mt-2">
+                          🔒 Your API key is stored locally in your browser and never sent to our servers.
+                        </p>
+                      </div>
+
+                      {/* Step 4 */}
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</div>
+                          <h4 className="font-semibold text-purple-800">You're All Set!</h4>
+                        </div>
+                        <p className="text-gray-600">
+                          Once saved, you can start generating unlimited anime-style outfits! 
+                          Google will handle any usage limits automatically.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-6">
+                      <button 
+                        onClick={() => handleSaveApiKey(apiKey)}
+                        disabled={!apiKey.trim()}
+                        className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-purple-400 transition-colors"
+                      >
+                        Save API Key & Start Creating
+                      </button>
+                      <button 
+                        onClick={() => setShowApiKeyModal(false)}
+                        className="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
