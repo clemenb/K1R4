@@ -4,6 +4,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('chat');
   const [selectedBackground, setSelectedBackground] = useState('/backgrounds/mbckgrd1.jpg');
   const [selectedAvatar, setSelectedAvatar] = useState('/avatars/avatar_01.jpeg');
+  const [showBackgroundMenu, setShowBackgroundMenu] = useState(false);
 
   // Background and avatar mappings
   const backgrounds = [
@@ -36,19 +37,58 @@ function App() {
         
         {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto w-full">
-          <div className="flex items-center justify-center gap-6">
-            <img 
-              src="/logo.png" 
-              alt="K1R4 Logo" 
-              className="h-20 w-20 object-contain drop-shadow-lg" 
-            />
-            <div className="text-left text-white drop-shadow-lg">
-              <h2 className="text-4xl font-bold">
-                K1R4: Your Wardrobe Adviser
-              </h2>
-              <p className="text-xl">
-                Save time with AI
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img 
+                src="/logo.png" 
+                alt="K1R4 Logo" 
+                className="h-32 w-32 object-contain drop-shadow-lg" 
+              />
+              <div className="text-left text-white drop-shadow-lg">
+                <h2 className="text-lg font-bold">
+                  Your Wardrobe Adviser
+                </h2>
+                <p className="text-sm">
+                  Save time with AI
+                </p>
+              </div>
+            </div>
+            
+            {/* Background Dropdown Menu */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
+                className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-all flex items-center gap-2"
+              >
+                Change Background
+                <span className={`transform transition-transform ${showBackgroundMenu ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+              
+              {showBackgroundMenu && (
+                <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 min-w-48 z-50">
+                  {backgrounds.map((bg) => (
+                    <button
+                      key={bg.value}
+                      onClick={() => {
+                        handleBackgroundChange(bg.value);
+                        setShowBackgroundMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all ${
+                        selectedBackground === bg.value ? 'bg-purple-100 text-purple-700' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <img 
+                        src={bg.avatar} 
+                        alt={bg.label}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <span>{bg.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -80,24 +120,7 @@ function App() {
           ))}
         </div>
 
-        {/* Background Selector */}
-        <div className="relative z-10 flex justify-center gap-2 p-4">
-          {backgrounds.map((bg) => (
-            <button
-              key={bg.value}
-              onClick={() => handleBackgroundChange(bg.value)}
-              className={`w-12 h-12 rounded-full border-2 overflow-hidden transition-all ${
-                selectedBackground === bg.value ? 'border-white shadow-lg' : 'border-gray-300'
-              }`}
-            >
-              <img 
-                src={bg.value} 
-                alt={bg.label}
-                className="w-full h-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
+
 
         {/* Main Content */}
         <div className="relative z-10 container mx-auto p-4">
