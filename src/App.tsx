@@ -37,20 +37,17 @@ function App() {
         
         {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto w-full">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-4">
               <img 
                 src="/logo.png" 
                 alt="K1R4 Logo" 
-                className="h-32 w-32 object-contain drop-shadow-lg" 
+                className="h-20 w-20 object-contain drop-shadow-lg" 
               />
               <div className="text-left text-white drop-shadow-lg">
                 <h2 className="text-lg font-bold">
                   Your Wardrobe Adviser
                 </h2>
-                <p className="text-sm">
-                  Save time with AI
-                </p>
               </div>
             </div>
             
@@ -58,16 +55,17 @@ function App() {
             <div className="relative">
               <button 
                 onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
-                className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-all flex items-center gap-2"
+                className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/30 transition-all flex items-center gap-1"
+                title="Change Background"
               >
-                Change Background
-                <span className={`transform transition-transform ${showBackgroundMenu ? 'rotate-180' : ''}`}>
+                <span className="text-lg">🎨</span>
+                <span className={`transform transition-transform text-xs ${showBackgroundMenu ? 'rotate-180' : ''}`}>
                   ▼
                 </span>
               </button>
               
               {showBackgroundMenu && (
-                <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
                   <div className="flex flex-col gap-2">
                     {backgrounds.map((bg) => (
                       <button
