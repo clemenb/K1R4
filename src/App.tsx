@@ -442,8 +442,8 @@ function App() {
 
               {/* API Key Setup Modal */}
               {showApiKeyModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 pt-20 overflow-y-auto">
+                  <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-8">
                     <h3 className="text-2xl font-bold text-purple-700 mb-4">Set Up Your AI Assistant</h3>
                     
                     <div className="space-y-6">
