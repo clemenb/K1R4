@@ -114,9 +114,9 @@ function App() {
                     }`}
                     title={tab === 'chat' ? 'Chat' : tab === 'wardrobe' ? 'Wardrobe Builder' : 'Outfit Suggester'}
                   >
-                    {tab === 'chat' && '💬'}
-                    {tab === 'wardrobe' && '👕'}
-                    {tab === 'outfit' && '👗'}
+                    {tab === 'chat' && '💭'}
+                    {tab === 'wardrobe' && '👚'}
+                    {tab === 'outfit' && '👔'}
                   </button>
                 ))}
               </div>
@@ -209,7 +209,7 @@ function App() {
                   onClick={handleSingleUploadClick}
                   className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
                 >
-                  <div className="text-4xl mb-2">📸</div>
+                  <div className="text-4xl mb-2">📷</div>
                   <p className="font-semibold">Single Images</p>
                   <p className="text-sm text-gray-600">Upload individual clothing items</p>
                 </button>
@@ -217,7 +217,7 @@ function App() {
                   onClick={handleBulkUploadClick}
                   className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
                 >
-                  <div className="text-4xl mb-2">📚</div>
+                  <div className="text-4xl mb-2">🖼️</div>
                   <p className="font-semibold">Bulk Upload</p>
                   <p className="text-sm text-gray-600">Upload multiple items at once</p>
                 </button>
@@ -225,7 +225,7 @@ function App() {
                   onClick={handleFolderUploadClick}
                   className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
                 >
-                  <div className="text-4xl mb-2">📁</div>
+                  <div className="text-4xl mb-2">📂</div>
                   <p className="font-semibold">Folder Upload</p>
                   <p className="text-sm text-gray-600">Upload entire folders</p>
                 </button>
@@ -268,7 +268,7 @@ function App() {
               {/* Empty state */}
               {uploadedImages.length === 0 && (
                 <div className="text-center py-12">
-                  <div className="text-6xl mb-4">👕</div>
+                  <div className="text-6xl mb-4">👚</div>
                   <p className="text-gray-500 text-lg">No items in your wardrobe yet</p>
                   <p className="text-gray-400">Upload some clothing items to get started!</p>
                 </div>
