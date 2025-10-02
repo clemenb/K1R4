@@ -37,7 +37,7 @@ function App() {
         
         {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto w-full">
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
                 src="/logo.png" 
@@ -51,43 +51,64 @@ function App() {
               </div>
             </div>
             
-            {/* Background Dropdown Menu */}
-            <div className="relative">
-              <button 
-                onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
-                className="text-white p-1 transition-all flex items-center gap-1 hover:scale-110"
-                title="Change Background"
-              >
-                <span className="text-xl">🎨</span>
-                <span className={`transform transition-transform text-xs ${showBackgroundMenu ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
-              </button>
+            <div className="flex items-center gap-4">
+              {/* Navigation Tabs as Icons */}
+              <div className="flex gap-3">
+                {['wardrobe', 'outfit'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`text-2xl transition-all ${
+                      activeTab === tab
+                        ? 'text-white scale-110'
+                        : 'text-white/70 hover:text-white hover:scale-105'
+                    }`}
+                    title={tab === 'wardrobe' ? 'Wardrobe Builder' : 'Outfit Suggester'}
+                  >
+                    {tab === 'wardrobe' && '👕'}
+                    {tab === 'outfit' && '👗'}
+                  </button>
+                ))}
+              </div>
               
-              {showBackgroundMenu && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
-                  <div className="flex flex-col gap-2">
-                    {backgrounds.map((bg) => (
-                      <button
-                        key={bg.value}
-                        onClick={() => {
-                          handleBackgroundChange(bg.value);
-                          setShowBackgroundMenu(false);
-                        }}
-                        className={`w-16 h-16 rounded-lg border-2 overflow-hidden transition-all ${
-                          selectedBackground === bg.value ? 'border-white shadow-lg' : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                      >
-                        <img 
-                          src={bg.value} 
-                          alt={bg.label}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
+              {/* Background Dropdown Menu */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
+                  className="text-white p-1 transition-all flex items-center gap-1 hover:scale-110"
+                  title="Change Background"
+                >
+                  <span className="text-xl">🎨</span>
+                  <span className={`transform transition-transform text-xs ${showBackgroundMenu ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
+                </button>
+                
+                {showBackgroundMenu && (
+                  <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
+                    <div className="flex flex-col gap-2">
+                      {backgrounds.map((bg) => (
+                        <button
+                          key={bg.value}
+                          onClick={() => {
+                            handleBackgroundChange(bg.value);
+                            setShowBackgroundMenu(false);
+                          }}
+                          className={`w-16 h-16 rounded-lg border-2 overflow-hidden transition-all ${
+                            selectedBackground === bg.value ? 'border-white shadow-lg' : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                        >
+                          <img 
+                            src={bg.value} 
+                            alt={bg.label}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -100,24 +121,7 @@ function App() {
       >
         <div className="absolute inset-0 bg-black/20"></div>
         
-        {/* Navigation Tabs */}
-        <div className="relative z-10 flex justify-center gap-4 p-4">
-          {['chat', 'wardrobe', 'outfit'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                activeTab === tab
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-white/80 text-purple-600 hover:bg-white'
-              }`}
-            >
-              {tab === 'chat' && 'Chat with K1R4'}
-              {tab === 'wardrobe' && 'Wardrobe Builder'}
-              {tab === 'outfit' && 'Outfit Suggester'}
-            </button>
-          ))}
-        </div>
+
 
 
 
