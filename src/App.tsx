@@ -6,6 +6,9 @@ function App() {
   const [selectedAvatar, setSelectedAvatar] = useState('/avatars/avatar_01.jpeg');
   const [showBackgroundMenu, setShowBackgroundMenu] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [generatedOutfit, setGeneratedOutfit] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Background and avatar mappings
@@ -13,6 +16,14 @@ function App() {
     { value: '/backgrounds/mbckgrd1.jpg', label: 'African Style', avatar: '/avatars/avatar_01.jpeg' },
     { value: '/backgrounds/mbckgrd2.jpg', label: 'Asian Style', avatar: '/avatars/avatar_02.jpeg' },
     { value: '/backgrounds/mbckgrd3.jpg', label: 'European Style', avatar: '/avatars/avatar_03.jpeg' },
+  ];
+
+  // Event types for outfit generation
+  const eventTypes = [
+    'Casual', 'Work/Office', 'Party/Night Out', 'Date Night', 'Formal/Black Tie',
+    'Business Meeting', 'Brunch', 'Beach/Vacation', 'Workout/Athletic', 'Coffee Date',
+    'Shopping', 'Dinner', 'Wedding', 'Interview', 'Cocktail Party',
+    'Festival/Concert', 'Weekend Getaway', 'Graduation', 'Birthday Celebration', 'Gala'
   ];
 
   const handleBackgroundChange = (backgroundValue: string) => {
@@ -68,6 +79,32 @@ function App() {
       fileInputRef.current.webkitdirectory = true;
       fileInputRef.current.click();
     }
+  };
+
+  // Outfit generation functions
+  const handleGenerateOutfit = () => {
+    if (uploadedImages.length === 0) {
+      alert('Please upload some clothing items to your wardrobe first!');
+      return;
+    }
+    setShowEventModal(true);
+  };
+
+  const handleEventSelect = (eventType: string) => {
+    setShowEventModal(false);
+    setIsGenerating(true);
+    
+    // Simulate AI processing (in a real app, this would call an AI API)
+    setTimeout(() => {
+      setIsGenerating(false);
+      // In a real implementation, this would be the AI-generated outfit image
+      setGeneratedOutfit(selectedAvatar); // Using avatar as placeholder for now
+    }, 3000);
+  };
+
+  const handleRegenerateOutfit = () => {
+    setGeneratedOutfit(null);
+    setShowEventModal(true);
   };
 
   return (
@@ -279,25 +316,99 @@ function App() {
           {activeTab === 'outfit' && (
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
               <h2 className="text-2xl font-bold text-purple-700 mb-6">Outfit Suggestions</h2>
-              <div className="flex flex-col md:flex-row gap-6 items-center mb-6">
-                <div className="flex-shrink-0">
-                  <img 
-                    src={selectedAvatar} 
-                    alt="Selected Avatar" 
-                    className="w-32 h-32 object-cover rounded-full border-4 border-purple-300"
-                  />
-                  <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
+              
+              {!generatedOutfit ? (
+                <div className="flex flex-col md:flex-row gap-6 items-center mb-6">
+                  <div className="flex-shrink-0">
+                    <img 
+                      src={selectedAvatar} 
+                      alt="Selected Avatar" 
+                      className="w-32 h-32 object-cover rounded-full border-4 border-purple-300"
+                    />
+                    <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold mb-3">Generate Outfit Suggestions</h3>
+                    <p className="text-gray-600 mb-4">
+                      K1R4 will analyze your wardrobe and create anime-style outfits for your avatar.
+                    </p>
+                    <button 
+                      onClick={handleGenerateOutfit}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-purple-400"
+                      disabled={uploadedImages.length === 0}
+                    >
+                      {uploadedImages.length === 0 ? 'Upload Clothes First' : 'Generate Outfits'}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold mb-3">Generate Outfit Suggestions</h3>
-                  <p className="text-gray-600 mb-4">
-                    K1R4 will analyze your wardrobe and create anime-style outfits for your avatar.
-                  </p>
-                  <button className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                    Generate Outfits
-                  </button>
+              ) : (
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-purple-700 mb-4">Your Generated Outfit</h3>
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="relative">
+                      <img 
+                        src={generatedOutfit} 
+                        alt="Generated Outfit" 
+                        className="w-64 h-64 object-cover rounded-lg border-4 border-purple-300"
+                      />
+                    </div>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={handleRegenerateOutfit}
+                        className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                      >
+                        Generate Another
+                      </button>
+                      <button 
+                        onClick={() => setGeneratedOutfit(null)}
+                        className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                      >
+                        Back to Wardrobe
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Loading State */}
+              {isGenerating && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                      <h3 className="text-lg font-semibold text-purple-700 mb-2">Generating Your Outfit</h3>
+                      <p className="text-gray-600">AI is creating a perfect anime-style outfit for you...</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Event Selection Modal */}
+              {showEventModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+                    <h3 className="text-xl font-bold text-purple-700 mb-4">Select Event Type</h3>
+                    <p className="text-gray-600 mb-4">Choose the occasion for your outfit:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {eventTypes.map((event) => (
+                        <button
+                          key={event}
+                          onClick={() => handleEventSelect(event)}
+                          className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+                        >
+                          {event}
+                        </button>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => setShowEventModal(false)}
+                      className="mt-4 w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
