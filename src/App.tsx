@@ -104,25 +104,16 @@ function App() {
           {/* Simple content for each tab */}
           {activeTab === 'chat' && (
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-20 h-20 rounded-full bg-purple-200 flex items-center justify-center">
-                  <img src={selectedAvatar} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-purple-700">K1R4</h3>
-                  <p className="text-gray-600">Your Anime Wardrobe & Life Advisor</p>
-                </div>
-              </div>
               <div className="space-y-3">
                 <div className="p-3 rounded-lg bg-purple-100 text-purple-800 flex items-start gap-3">
                   <img src="/logo.png" alt="K1R4 Logo" className="h-6 w-6 object-contain mt-1" />
-                  <p>Hi! I'm K1R4, your anime wardrobe advisor. Ask me for life tips or outfit ideas! 🌟</p>
+                  <p>Hi! I'm your wardrobe advisor. Ask me for outfit ideas! 🌟</p>
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
                 <input 
                   type="text" 
-                  placeholder="Ask K1R4 about outfits, style tips, or life advice..."
+                  placeholder="Ask about outfits, style tips, or advice..."
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
