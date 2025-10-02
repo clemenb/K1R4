@@ -37,7 +37,7 @@ function App() {
         
         {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto w-full">
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-4">
               <img 
                 src="/logo.png" 
@@ -55,10 +55,10 @@ function App() {
             <div className="relative">
               <button 
                 onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
-                className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/30 transition-all flex items-center gap-1"
+                className="text-white p-1 transition-all flex items-center gap-1 hover:scale-110"
                 title="Change Background"
               >
-                <span className="text-lg">🎨</span>
+                <span className="text-xl">🎨</span>
                 <span className={`transform transition-transform text-xs ${showBackgroundMenu ? 'rotate-180' : ''}`}>
                   ▼
                 </span>
