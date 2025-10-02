@@ -44,10 +44,10 @@ function App() {
             />
             <div className="text-left text-white drop-shadow-lg">
               <h2 className="text-4xl font-bold">
-                K1R4: Your Anime Life Advisor
+                K1R4: Your Wardrobe Adviser
               </h2>
               <p className="text-xl">
-                Empowering women with tips & style!
+                Save time with AI
               </p>
             </div>
           </div>
