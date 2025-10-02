@@ -115,7 +115,7 @@ function App() {
                     title={tab === 'chat' ? 'Chat' : tab === 'wardrobe' ? 'Wardrobe Builder' : 'Outfit Suggester'}
                   >
                     {tab === 'chat' && '💬'}
-                    {tab === 'wardrobe' && '👚'}
+                    {tab === 'wardrobe' && '📷'}
                     {tab === 'outfit' && '👗'}
                   </button>
                 ))}
