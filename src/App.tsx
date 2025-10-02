@@ -5,7 +5,11 @@ function App() {
   const [selectedBackground, setSelectedBackground] = useState('/backgrounds/mbckgrd1.jpg');
   const [selectedAvatar, setSelectedAvatar] = useState('/avatars/avatar_01.jpeg');
   const [showBackgroundMenu, setShowBackgroundMenu] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<string[]>(() => {
+    // Load uploaded images from localStorage
+    const saved = localStorage.getItem('wardrobe_images');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [showEventModal, setShowEventModal] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -45,15 +49,16 @@ function App() {
     const files = event.target.files;
     if (!files) return;
 
-    const newImages: string[] = [];
-    
     Array.from(files).forEach((file) => {
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
           if (e.target?.result) {
-            newImages.push(e.target.result as string);
-            setUploadedImages(prev => [...prev, e.target!.result as string]);
+            setUploadedImages(prev => {
+              const updated = [...prev, e.target!.result as string];
+              localStorage.setItem('wardrobe_images', JSON.stringify(updated));
+              return updated;
+            });
           }
         };
         reader.readAsDataURL(file);
@@ -443,86 +448,85 @@ function App() {
               {/* API Key Setup Modal */}
               {showApiKeyModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 h-[90vh] flex flex-col">
-                    <h3 className="text-2xl font-bold text-purple-700 mb-4">Set Up Your AI Assistant</h3>
+                  <div className="bg-white rounded-lg p-4 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+                    <h3 className="text-xl font-semibold text-purple-700 mb-3">AI Assistant Setup</h3>
                     
-                    <div className="flex-1 overflow-y-auto pr-2">
-                      <div className="space-y-4">
+                    <div className="flex-1 overflow-y-auto pr-1">
+                      <div className="space-y-3">
                         {/* Step 1 */}
-                        <div className="bg-purple-50 p-4 rounded-lg">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
-                            <h4 className="font-semibold text-purple-800">Go to Google AI Studio</h4>
+                        <div className="bg-purple-50 p-3 rounded-md">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">1</div>
+                            <h4 className="font-medium text-purple-800 text-sm">Access Google AI Studio</h4>
                           </div>
-                          <p className="text-gray-600 mb-3">Click the button below to open Google AI Studio in a new tab:</p>
+                          <p className="text-gray-600 text-sm mb-2">Open Google AI Studio in a new tab:</p>
                           <a 
                             href="https://aistudio.google.com/app/apikey" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                            className="inline-block px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors"
                           >
                             Open Google AI Studio
                           </a>
                         </div>
 
                         {/* Step 2 */}
-                        <div className="bg-purple-50 p-4 rounded-lg">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
-                            <h4 className="font-semibold text-purple-800">Create Your API Key</h4>
+                        <div className="bg-purple-50 p-3 rounded-md">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">2</div>
+                            <h4 className="font-medium text-purple-800 text-sm">Create API Key</h4>
                           </div>
-                          <p className="text-gray-600 mb-2">Once the page loads:</p>
-                          <ol className="list-decimal list-inside text-gray-600 space-y-1">
+                          <p className="text-gray-600 text-sm mb-1">Once loaded:</p>
+                          <ol className="list-decimal list-inside text-gray-600 text-sm space-y-0.5">
                             <li>Click "Create API Key"</li>
                             <li>Select "Create API Key in new project"</li>
-                            <li>Copy the generated API key</li>
+                            <li>Copy the generated key</li>
                           </ol>
                         </div>
 
                         {/* Step 3 */}
-                        <div className="bg-purple-50 p-4 rounded-lg">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
-                            <h4 className="font-semibold text-purple-800">Paste Your API Key</h4>
+                        <div className="bg-purple-50 p-3 rounded-md">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">3</div>
+                            <h4 className="font-medium text-purple-800 text-sm">Enter API Key</h4>
                           </div>
-                          <p className="text-gray-600 mb-3">Paste your API key here (it will be saved securely in your browser):</p>
+                          <p className="text-gray-600 text-sm mb-2">Paste your key here (stored locally):</p>
                           <input
                             type="password"
-                            placeholder="Paste your Gemini API key here..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Paste Gemini API key..."
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                             onChange={(e) => setApiKey(e.target.value)}
                             value={apiKey}
                           />
-                          <p className="text-sm text-gray-500 mt-2">
-                            🔒 Your API key is stored locally in your browser and never sent to our servers.
+                          <p className="text-xs text-gray-500 mt-1">
+                            🔒 Stored locally in your browser
                           </p>
                         </div>
 
                         {/* Step 4 */}
-                        <div className="bg-purple-50 p-4 rounded-lg">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</div>
-                            <h4 className="font-semibold text-purple-800">You're All Set!</h4>
+                        <div className="bg-purple-50 p-3 rounded-md">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">4</div>
+                            <h4 className="font-medium text-purple-800 text-sm">Ready to Create</h4>
                           </div>
-                          <p className="text-gray-600">
-                            Once saved, you can start generating unlimited anime-style outfits! 
-                            Google will handle any usage limits automatically.
+                          <p className="text-gray-600 text-sm">
+                            Start generating anime-style outfits! Usage limits managed by Google.
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
                       <button 
                         onClick={() => handleSaveApiKey(apiKey)}
                         disabled={!apiKey.trim()}
-                        className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-purple-400 transition-colors"
+                        className="flex-1 px-3 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 disabled:bg-purple-400 transition-colors"
                       >
-                        Save API Key & Start Creating
+                        Save & Start Creating
                       </button>
                       <button 
                         onClick={() => setShowApiKeyModal(false)}
-                        className="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                        className="px-3 py-2 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 transition-colors"
                       >
                         Cancel
                       </button>
