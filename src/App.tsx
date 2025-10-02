@@ -442,75 +442,77 @@ function App() {
 
               {/* API Key Setup Modal */}
               {showApiKeyModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 pt-20 overflow-y-auto">
-                  <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-8">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 h-[90vh] flex flex-col">
                     <h3 className="text-2xl font-bold text-purple-700 mb-4">Set Up Your AI Assistant</h3>
                     
-                    <div className="space-y-6">
-                      {/* Step 1 */}
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
-                          <h4 className="font-semibold text-purple-800">Go to Google AI Studio</h4>
+                    <div className="flex-1 overflow-y-auto pr-2">
+                      <div className="space-y-4">
+                        {/* Step 1 */}
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
+                            <h4 className="font-semibold text-purple-800">Go to Google AI Studio</h4>
+                          </div>
+                          <p className="text-gray-600 mb-3">Click the button below to open Google AI Studio in a new tab:</p>
+                          <a 
+                            href="https://aistudio.google.com/app/apikey" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                          >
+                            Open Google AI Studio
+                          </a>
                         </div>
-                        <p className="text-gray-600 mb-3">Click the button below to open Google AI Studio in a new tab:</p>
-                        <a 
-                          href="https://aistudio.google.com/app/apikey" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                        >
-                          Open Google AI Studio
-                        </a>
-                      </div>
 
-                      {/* Step 2 */}
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
-                          <h4 className="font-semibold text-purple-800">Create Your API Key</h4>
+                        {/* Step 2 */}
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
+                            <h4 className="font-semibold text-purple-800">Create Your API Key</h4>
+                          </div>
+                          <p className="text-gray-600 mb-2">Once the page loads:</p>
+                          <ol className="list-decimal list-inside text-gray-600 space-y-1">
+                            <li>Click "Create API Key"</li>
+                            <li>Select "Create API Key in new project"</li>
+                            <li>Copy the generated API key</li>
+                          </ol>
                         </div>
-                        <p className="text-gray-600 mb-2">Once the page loads:</p>
-                        <ol className="list-decimal list-inside text-gray-600 space-y-1">
-                          <li>Click "Create API Key"</li>
-                          <li>Select "Create API Key in new project"</li>
-                          <li>Copy the generated API key</li>
-                        </ol>
-                      </div>
 
-                      {/* Step 3 */}
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
-                          <h4 className="font-semibold text-purple-800">Paste Your API Key</h4>
+                        {/* Step 3 */}
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
+                            <h4 className="font-semibold text-purple-800">Paste Your API Key</h4>
+                          </div>
+                          <p className="text-gray-600 mb-3">Paste your API key here (it will be saved securely in your browser):</p>
+                          <input
+                            type="password"
+                            placeholder="Paste your Gemini API key here..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            onChange={(e) => setApiKey(e.target.value)}
+                            value={apiKey}
+                          />
+                          <p className="text-sm text-gray-500 mt-2">
+                            🔒 Your API key is stored locally in your browser and never sent to our servers.
+                          </p>
                         </div>
-                        <p className="text-gray-600 mb-3">Paste your API key here (it will be saved securely in your browser):</p>
-                        <input
-                          type="password"
-                          placeholder="Paste your Gemini API key here..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          onChange={(e) => setApiKey(e.target.value)}
-                          value={apiKey}
-                        />
-                        <p className="text-sm text-gray-500 mt-2">
-                          🔒 Your API key is stored locally in your browser and never sent to our servers.
-                        </p>
-                      </div>
 
-                      {/* Step 4 */}
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</div>
-                          <h4 className="font-semibold text-purple-800">You're All Set!</h4>
+                        {/* Step 4 */}
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</div>
+                            <h4 className="font-semibold text-purple-800">You're All Set!</h4>
+                          </div>
+                          <p className="text-gray-600">
+                            Once saved, you can start generating unlimited anime-style outfits! 
+                            Google will handle any usage limits automatically.
+                          </p>
                         </div>
-                        <p className="text-gray-600">
-                          Once saved, you can start generating unlimited anime-style outfits! 
-                          Google will handle any usage limits automatically.
-                        </p>
                       </div>
                     </div>
 
-                    <div className="flex gap-3 mt-6">
+                    <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
                       <button 
                         onClick={() => handleSaveApiKey(apiKey)}
                         disabled={!apiKey.trim()}
