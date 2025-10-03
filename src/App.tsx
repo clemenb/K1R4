@@ -270,18 +270,35 @@ function App() {
                 ))}
               </div>
               
-              {/* Background Dropdown Menu */}
-              <div className="relative">
-                <button 
-                  onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
-                  className="text-white p-1 transition-all flex items-center gap-1 hover:scale-110"
-                  title="Change Background"
-                >
-                  <span className="text-xl">🎨</span>
-                  <span className={`transform transition-transform text-xs ${showBackgroundMenu ? 'rotate-180' : ''}`}>
-                    ▼
-                  </span>
-                </button>
+              {/* API Key Status & Background Menu */}
+              <div className="flex items-center gap-2">
+                {/* API Key Status */}
+                {apiKey && (
+                  <div className="text-white text-sm bg-green-600/80 px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="text-xs">🔑</span>
+                    <span className="text-xs">API Key Set</span>
+                    <button 
+                      onClick={handleRemoveApiKey}
+                      className="text-xs hover:text-red-200"
+                      title="Remove API Key"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                
+                {/* Background Dropdown Menu */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
+                    className="text-white p-1 transition-all flex items-center gap-1 hover:scale-110"
+                    title="Change Background"
+                  >
+                    <span className="text-xl">🎨</span>
+                    <span className={`transform transition-transform text-xs ${showBackgroundMenu ? 'rotate-180' : ''}`}>
+                      ▼
+                    </span>
+                  </button>
                 
                 {showBackgroundMenu && (
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
