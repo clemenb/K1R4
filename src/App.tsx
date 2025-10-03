@@ -104,7 +104,8 @@ function App() {
       return;
     }
     
-    if (!checkApiKeyBeforeGeneration()) {
+    // Only check API key for paid option
+    if (generatorType === 'paid' && !checkApiKeyBeforeGeneration()) {
       return;
     }
     
@@ -564,8 +565,8 @@ function App() {
                         }`}
                       >
                         <div className="text-xl mb-1">💰</div>
-                        <div className="font-semibold">Pay</div>
-                        <div className="text-sm opacity-80">High Quality AI</div>
+                        <div className="font-semibold">Premium</div>
+                        <div className="text-sm opacity-80">Best Quality</div>
                         <div className="text-xs mt-1">$0.04 per image</div>
                       </button>
                       <button
@@ -578,8 +579,8 @@ function App() {
                       >
                         <div className="text-xl mb-1">🎁</div>
                         <div className="font-semibold">Free</div>
-                        <div className="text-sm opacity-80">LM Arena Simulation</div>
-                        <div className="text-xs mt-1">No cost, limited features</div>
+                        <div className="text-sm opacity-80">Good Quality</div>
+                        <div className="text-xs mt-1">No cost</div>
                       </button>
                     </div>
                   </div>
@@ -596,12 +597,12 @@ function App() {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold mb-3">
-                          {generatorType === 'paid' ? 'AI Outfit Generation' : 'Free Outfit Simulation'}
+                          {generatorType === 'paid' ? 'Premium Outfit Generation' : 'Free Outfit Generation'}
                         </h3>
                         <p className="text-gray-600 mb-4">
                           {generatorType === 'paid' 
-                            ? 'K1R4 will use advanced AI to create high-quality anime-style outfits for your avatar.'
-                            : 'K1R4 will create a simulated outfit using your clothing items (no AI generation).'
+                            ? 'Create high-quality anime-style outfits with our premium service.'
+                            : 'Create great anime-style outfits with our free service.'
                           }
                         </p>
                         <button 
@@ -614,7 +615,7 @@ function App() {
                           {uploadedImages.length === 0 
                             ? 'Upload Clothes First' 
                             : generatorType === 'paid' 
-                              ? 'Generate AI Outfits' 
+                              ? 'Generate Premium Outfits' 
                               : 'Generate Free Outfits'
                           }
                         </button>
