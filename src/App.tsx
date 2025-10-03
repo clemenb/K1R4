@@ -115,11 +115,11 @@ function App() {
     setIsGenerating(true);
     
     try {
-      // Use LM Arena service for actual outfit generation
-      const generatedImage = await generateOutfitWithLMArena(uploadedImages, selectedAvatar, eventType);
+      // Use Gemini 2.5 Flash Image for actual outfit generation
+      const generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
       
       if (generatedImage === 'error') {
-        throw new Error('LM Arena generation failed');
+        throw new Error('Gemini generation failed');
       }
       
       setGeneratedOutfit(generatedImage);
@@ -132,8 +132,8 @@ function App() {
     }
   };
 
-  // Direct Gemini 2.5 Flash Image integration using JavaScript SDK
-  const generateOutfitWithLMArena = async (clothingImages: string[], avatarImage: string, eventType: string) => {
+  // Simple Gemini 2.5 Flash Image integration
+  const generateOutfitWithGemini = async (clothingImages: string[], avatarImage: string, eventType: string) => {
     console.log(`Using Gemini 2.5 Flash Image for ${eventType} event`);
     
     try {
@@ -145,11 +145,8 @@ function App() {
         model: "gemini-2.5-flash-image" 
       });
 
-      // Prepare the prompt
-      const prompt = `Dress this anime girl avatar with the provided clothing items for a ${eventType} event. 
-      Create a complete, fashionable anime-style outfit that properly fits the avatar's body.
-      The clothing should be realistically integrated onto the avatar, not just placed beside it.
-      Generate a full-body anime-style image of the avatar wearing the complete outfit.`;
+      // Use the exact simple prompt from your example
+      const prompt = "Make the full body avatar wear the cloths in an anime style image.";
 
       // Convert base64 images to the format expected by the SDK
       const base64ToGenerativePart = (base64Data: string, mimeType: string) => {
@@ -166,13 +163,13 @@ function App() {
         };
       };
 
-      // Prepare image parts
+      // Prepare image parts - avatar first, then all clothing images
       const imageParts = [
         base64ToGenerativePart(avatarImage, 'image/jpeg')
       ];
 
-      // Add clothing images (limit to 2 to avoid overwhelming the model)
-      clothingImages.slice(0, 2).forEach(img => {
+      // Add ALL clothing images - let Gemini handle how many to use
+      clothingImages.forEach(img => {
         imageParts.push(base64ToGenerativePart(img, 'image/jpeg'));
       });
 
@@ -289,26 +286,6 @@ function App() {
             
             {/* Navigation Menu Below Title */}
             <div className="flex items-center gap-4">
-              {/* Navigation Tabs as Icons */}
-              <div className="flex gap-3">
-                {['chat', 'wardrobe', 'outfit'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`text-2xl transition-all ${
-                      activeTab === tab
-                        ? 'text-white scale-110'
-                        : 'text-white/70 hover:text-white hover:scale-105'
-                    }`}
-                    title={tab === 'chat' ? 'Chat' : tab === 'wardrobe' ? 'Wardrobe Builder' : 'Outfit Suggester'}
-                  >
-                    {tab === 'chat' && '💬'}
-                    {tab === 'wardrobe' && '📷'}
-                    {tab === 'outfit' && '👗'}
-                  </button>
-                ))}
-              </div>
-              
               {/* API Key Status & Background Menu */}
               <div className="flex items-center gap-2">
                 {/* API Key Status */}
@@ -338,31 +315,52 @@ function App() {
                       ▼
                     </span>
                   </button>
-                
-                {showBackgroundMenu && (
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
-                    <div className="flex flex-col gap-2">
-                      {backgrounds.map((bg) => (
-                        <button
-                          key={bg.value}
-                          onClick={() => {
-                            handleBackgroundChange(bg.value);
-                            setShowBackgroundMenu(false);
-                          }}
-                          className={`w-16 h-16 rounded-lg border-2 overflow-hidden transition-all ${
-                            selectedBackground === bg.value ? 'border-white shadow-lg' : 'border-gray-300 hover:border-gray-400'
-                          }`}
-                        >
-                          <img 
-                            src={bg.value} 
-                            alt={bg.label}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
+                  
+                  {showBackgroundMenu && (
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-2 z-50">
+                      <div className="flex flex-col gap-2">
+                        {backgrounds.map((bg) => (
+                          <button
+                            key={bg.value}
+                            onClick={() => {
+                              handleBackgroundChange(bg.value);
+                              setShowBackgroundMenu(false);
+                            }}
+                            className={`w-16 h-16 rounded-lg border-2 overflow-hidden transition-all ${
+                              selectedBackground === bg.value ? 'border-white shadow-lg' : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            <img 
+                              src={bg.value} 
+                              alt={bg.label}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
+
+              {/* Navigation Tabs as Icons */}
+              <div className="flex gap-3">
+                {['chat', 'wardrobe', 'outfit'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`text-2xl transition-all ${
+                      activeTab === tab
+                        ? 'text-white scale-110'
+                        : 'text-white/70 hover:text-white hover:scale-105'
+                    }`}
+                    title={tab === 'chat' ? 'Chat' : tab === 'wardrobe' ? 'Wardrobe Builder' : 'Outfit Suggester'}
+                  >
+                    {tab === 'chat' && '💬'}
+                    {tab === 'wardrobe' && '📷'}
+                    {tab === 'outfit' && '👗'}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -376,10 +374,6 @@ function App() {
       >
         <div className="absolute inset-0 bg-black/20"></div>
         
-
-
-
-
         {/* Main Content */}
         <div className="relative z-10 container mx-auto p-4">
           {/* Simple content for each tab */}
