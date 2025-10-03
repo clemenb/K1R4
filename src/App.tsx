@@ -102,6 +102,10 @@ function App() {
       return;
     }
     
+    if (!checkApiKeyBeforeGeneration()) {
+      return;
+    }
+    
     setShowEventModal(true);
   };
 
@@ -110,173 +114,84 @@ function App() {
     setIsGenerating(true);
     
     try {
-      // Add minimum 8-second delay to simulate realistic generation time
-      const [generatedImage] = await Promise.all([
-        generateOutfitCombination(uploadedImages, selectedAvatar, eventType),
-        new Promise(resolve => setTimeout(resolve, 8000)) // Minimum 8 seconds
-      ]);
+      // Use LM Arena service for actual outfit generation
+      const generatedImage = await generateOutfitWithLMArena(uploadedImages, selectedAvatar, eventType);
+      
+      if (generatedImage === 'error') {
+        throw new Error('LM Arena generation failed');
+      }
+      
       setGeneratedOutfit(generatedImage);
     } catch (error) {
       console.error('Outfit generation failed:', error);
-      alert('Outfit generation failed. Please try again with different clothing items.');
+      alert('Outfit generation failed. Please check your API key and try again.');
       setGeneratedOutfit(selectedAvatar); // Fallback to original avatar
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Smart outfit combination system
-  const generateOutfitCombination = async (clothingImages: string[], avatarImage: string, eventType: string) => {
-    console.log(`Generating outfit for ${eventType} event with ${clothingImages.length} clothing items`);
+  // Gemini 2.5 Flash Image Preview integration with Python backend
+  const generateOutfitWithLMArena = async (clothingImages: string[], avatarImage: string, eventType: string) => {
+    console.log(`Using Gemini 2.5 Flash Image for ${eventType} event`);
     
     try {
-      // Create a canvas to combine images
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Could not create canvas context');
-      }
+      // Prepare the request for our Python backend
+      const requestBody = {
+        api_key: apiKey,
+        avatar_image: avatarImage,
+        clothing_images: clothingImages.slice(0, 3), // Limit to 3 clothing items
+        event_type: eventType
+      };
 
-      // Set canvas size to match avatar dimensions
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = avatarImage;
+      console.log('Sending request to Python backend...');
+
+      // Call our Python backend
+      const response = await fetch('http://localhost:5000/api/generate-outfit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Backend request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      canvas.width = img.width;
-      canvas.height = img.height;
+      if (!data.success) {
+        throw new Error(data.error || 'Backend generation failed');
+      }
 
-      // Draw the base avatar
-      ctx.drawImage(img, 0, 0);
-
-      // Select 2-3 random clothing items to overlay (simulating outfit creation)
-      const selectedClothes = clothingImages
-        .sort(() => Math.random() - 0.5)
-        .slice(0, Math.min(3, clothingImages.length));
-
-      // Apply creative filters and overlays based on event type
-      for (let i = 0; i < selectedClothes.length; i++) {
-        const clothImg = new Image();
-        await new Promise((resolve, reject) => {
-          clothImg.onload = resolve;
-          clothImg.onerror = reject;
-          clothImg.src = selectedClothes[i];
+      console.log('Successfully received generated image from Gemini 2.5 Flash Image');
+      
+      // Save to localStorage for persistence
+      try {
+        const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
+        savedOutfits.push({
+          image: data.generated_image,
+          eventType: eventType,
+          timestamp: new Date().toISOString()
         });
-
-        // Apply different transformations based on position and event type
-        const scale = 0.3 + (Math.random() * 0.3);
-        const x = Math.random() * (canvas.width - clothImg.width * scale);
-        const y = Math.random() * (canvas.height - clothImg.height * scale);
-        
-        // Save context for transformations
-        ctx.save();
-        
-        // Apply event-specific styling
-        switch (eventType.toLowerCase()) {
-          case 'formal/black tie':
-          case 'wedding':
-          case 'gala':
-            ctx.globalAlpha = 0.7; // More transparent for elegance
-            ctx.filter = 'brightness(1.1) contrast(1.2)';
-            break;
-          case 'party/night out':
-          case 'cocktail party':
-            ctx.globalAlpha = 0.8;
-            ctx.filter = 'saturate(1.3) brightness(1.1)';
-            break;
-          case 'beach/vacation':
-            ctx.globalAlpha = 0.6;
-            ctx.filter = 'brightness(1.3) saturate(1.2)';
-            break;
-          default:
-            ctx.globalAlpha = 0.8;
-            ctx.filter = 'brightness(1.05)';
-        }
-
-        // Draw the clothing item with rotation and scaling
-        ctx.translate(x + clothImg.width * scale / 2, y + clothImg.height * scale / 2);
-        ctx.rotate((Math.random() - 0.5) * 0.2); // Slight random rotation
-        ctx.drawImage(
-          clothImg,
-          -clothImg.width * scale / 2,
-          -clothImg.height * scale / 2,
-          clothImg.width * scale,
-          clothImg.height * scale
-        );
-        
-        ctx.restore();
+        localStorage.setItem('generated_outfits', JSON.stringify(savedOutfits));
+      } catch (saveError) {
+        console.warn('Could not save outfit to localStorage:', saveError);
       }
-
-      // Add final styling based on event
-      ctx.save();
-      switch (eventType.toLowerCase()) {
-        case 'formal/black tie':
-        case 'wedding':
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          break;
-        case 'party/night out':
-          ctx.fillStyle = 'rgba(255, 0, 255, 0.05)';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          break;
-        case 'beach/vacation':
-          ctx.fillStyle = 'rgba(255, 255, 0, 0.05)';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          break;
-      }
-      ctx.restore();
-
-      // Convert canvas to data URL
-      const generatedOutfit = canvas.toDataURL('image/jpeg', 0.9);
-      console.log('Successfully generated outfit combination');
-      return generatedOutfit;
+      
+      return data.generated_image;
 
     } catch (error) {
-      console.error('Outfit generation failed:', error);
-      // Return a creatively modified version of the avatar as fallback
-      return applyFallbackStyling(avatarImage, eventType);
+      console.error('Gemini 2.5 Flash Image generation failed:', error);
+      
+      // Show helpful error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`AI Outfit generation failed: ${errorMessage}\n\nPlease ensure:\n1. The Python backend is running (cd backend && python app.py)\n2. You have set up billing for Gemini API\n3. Your API key has access to Gemini 2.5 Flash Image`);
+      
+      return 'error';
     }
-  };
-
-  // Fallback styling when combination fails
-  const applyFallbackStyling = (avatarImage: string, eventType: string): string => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) return avatarImage;
-
-    const img = new Image();
-    img.src = avatarImage;
-    
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-
-    // Apply event-specific color overlays
-    ctx.save();
-    switch (eventType.toLowerCase()) {
-      case 'formal/black tie':
-        ctx.fillStyle = 'rgba(0, 0, 50, 0.1)';
-        break;
-      case 'party/night out':
-        ctx.fillStyle = 'rgba(255, 0, 255, 0.15)';
-        break;
-      case 'beach/vacation':
-        ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
-        break;
-      case 'work/office':
-        ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
-        break;
-      default:
-        ctx.fillStyle = 'rgba(150, 150, 150, 0.1)';
-    }
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-
-    return canvas.toDataURL('image/jpeg', 0.9);
   };
 
   const handleRegenerateOutfit = () => {
