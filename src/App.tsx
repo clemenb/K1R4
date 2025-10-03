@@ -239,135 +239,47 @@ function App() {
     }
   };
 
-  // LM Arena Free Generator - Using simulation for now since we don't have direct API access
+  // Free Generator - Using AI4Free backend for truly free generation
   const generateOutfitWithLMArena = async (clothingImages: string[], avatarImage: string, eventType: string) => {
-    console.log(`Using LM Arena free service for ${eventType} event`);
+    console.log(`Using free AI service for ${eventType} event`);
     
     try {
-      // For now, we'll use a sophisticated simulation since LM Arena doesn't have a public API
-      // In the future, we could potentially reverse engineer their service
-      
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Could not create canvas context');
-      }
+      // Prepare the request for our free generator backend
+      const requestBody = {
+        avatar_image: avatarImage,
+        clothing_images: clothingImages.slice(0, 3), // Limit to 3 clothing items for free service
+        event_type: eventType
+      };
 
-      // Load the base avatar
-      const avatarImg = new Image();
-      await new Promise((resolve, reject) => {
-        avatarImg.onload = resolve;
-        avatarImg.onerror = reject;
-        avatarImg.src = avatarImage;
+      console.log('Sending request to free AI generator backend...');
+
+      // Call our free generator backend (port 5001)
+      const response = await fetch('http://localhost:5001/api/free-generate-outfit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Free generator request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      // Set canvas to avatar size
-      canvas.width = avatarImg.width;
-      canvas.height = avatarImg.height;
-
-      // Draw the base avatar
-      ctx.drawImage(avatarImg, 0, 0);
-
-      // Select clothing items for the outfit
-      const selectedClothes = clothingImages
-        .sort(() => Math.random() - 0.5)
-        .slice(0, Math.min(3, clothingImages.length));
-
-      // Apply sophisticated clothing placement
-      for (let i = 0; i < selectedClothes.length; i++) {
-        const clothImg = new Image();
-        await new Promise((resolve, reject) => {
-          clothImg.onload = resolve;
-          clothImg.onerror = reject;
-          clothImg.src = selectedClothes[i];
-        });
-
-        // Intelligent positioning based on clothing type
-        let scale, x, y;
-        
-        if (clothImg.width > clothImg.height) {
-          // Likely a top/dress
-          scale = 0.6 + (Math.random() * 0.2);
-          x = (canvas.width - clothImg.width * scale) * 0.3;
-          y = (canvas.height - clothImg.height * scale) * 0.2;
-        } else {
-          // Likely pants/skirt
-          scale = 0.5 + (Math.random() * 0.2);
-          x = (canvas.width - clothImg.width * scale) * 0.4;
-          y = (canvas.height - clothImg.height * scale) * 0.6;
-        }
-
-        ctx.save();
-        
-        // Apply event-specific styling
-        switch (eventType.toLowerCase()) {
-          case 'formal/black tie':
-          case 'wedding':
-          case 'gala':
-            ctx.globalAlpha = 0.9;
-            ctx.filter = 'brightness(1.1) contrast(1.1)';
-            break;
-          case 'party/night out':
-          case 'cocktail party':
-            ctx.globalAlpha = 0.85;
-            ctx.filter = 'saturate(1.2) brightness(1.05)';
-            break;
-          case 'beach/vacation':
-            ctx.globalAlpha = 0.8;
-            ctx.filter = 'brightness(1.2) hue-rotate(10deg)';
-            break;
-          case 'work/office':
-            ctx.globalAlpha = 0.9;
-            ctx.filter = 'contrast(1.1) saturate(0.9)';
-            break;
-          default:
-            ctx.globalAlpha = 0.85;
-            ctx.filter = 'brightness(1.05)';
-        }
-
-        // Draw clothing with professional positioning
-        ctx.drawImage(
-          clothImg,
-          x,
-          y,
-          clothImg.width * scale,
-          clothImg.height * scale
-        );
-        
-        ctx.restore();
+      if (!data.success) {
+        throw new Error(data.error || 'Free generation failed');
       }
 
-      // Apply final event-specific color grading
-      ctx.save();
-      switch (eventType.toLowerCase()) {
-        case 'formal/black tie':
-          ctx.fillStyle = 'rgba(0, 0, 30, 0.1)';
-          break;
-        case 'party/night out':
-          ctx.fillStyle = 'rgba(100, 0, 100, 0.08)';
-          break;
-        case 'beach/vacation':
-          ctx.fillStyle = 'rgba(255, 200, 0, 0.05)';
-          break;
-        case 'work/office':
-          ctx.fillStyle = 'rgba(80, 80, 100, 0.08)';
-          break;
-        default:
-          ctx.fillStyle = 'rgba(100, 100, 100, 0.05)';
-      }
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-
-      // Convert to data URL
-      const generatedOutfit = canvas.toDataURL('image/jpeg', 0.9);
-      console.log('Successfully generated free outfit');
+      console.log('Successfully received generated image from free AI service');
       
       // Save to localStorage for persistence
       try {
         const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
         savedOutfits.push({
-          image: generatedOutfit,
+          image: data.generated_image,
           eventType: eventType,
           generatorType: 'free',
           timestamp: new Date().toISOString()
@@ -377,13 +289,14 @@ function App() {
         console.warn('Could not save outfit to localStorage:', saveError);
       }
       
-      return generatedOutfit;
+      return data.generated_image;
 
     } catch (error) {
-      console.error('LM Arena generation failed:', error);
+      console.error('Free AI generation failed:', error);
       
       // Show helpful error message
-      alert('Free outfit generation failed. This is a simulation since LM Arena does not have a public API. For actual AI-generated outfits, please use the paid option.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Free AI generation failed: ${errorMessage}\n\nPlease ensure the free generator backend is running (cd backend && python free_generator.py)`);
       
       return 'error';
     }
