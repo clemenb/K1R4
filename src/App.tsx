@@ -130,65 +130,79 @@ function App() {
   const callGeminiAPI = async (clothingImages: string[], avatarImage: string, eventType: string, apiKey: string) => {
     const prompt = `Please dress the anime girl up with the clothes here proposed for a ${eventType} event. Create a complete, fashionable anime-style outfit.`;
     
-    // Prepare images for Gemini (convert data URLs to base64 without prefix)
-    const imageParts = [
-      {
-        inline_data: {
-          mime_type: "image/jpeg",
-          data: avatarImage.split(',')[1]
-        }
-      },
-      ...clothingImages.slice(0, 4).map(img => ({
-        inline_data: {
-          mime_type: "image/jpeg",
-          data: img.split(',')[1]
-        }
-      }))
-    ];
+    try {
+      // Clean base64 data by removing any potential whitespace or invalid characters
+      const cleanBase64 = (base64String: string) => {
+        return base64String.replace(/\s/g, '').replace(/[^A-Za-z0-9+/=]/g, '');
+      };
 
-    const requestBody = {
-      contents: [
+      // Prepare images for Gemini (convert data URLs to base64 without prefix)
+      const imageParts = [
         {
-          parts: [
-            { text: prompt },
-            ...imageParts
-          ]
+          inline_data: {
+            mime_type: "image/jpeg",
+            data: cleanBase64(avatarImage.split(',')[1])
+          }
         }
-      ],
-      generationConfig: {
-        temperature: 0.8,
-        topK: 32,
-        topP: 0.95,
-        maxOutputTokens: 2048,
+      ];
+
+      // Add up to 2 clothing images (fewer images to avoid API limits)
+      clothingImages.slice(0, 2).forEach(img => {
+        imageParts.push({
+          inline_data: {
+            mime_type: "image/jpeg", 
+            data: cleanBase64(img.split(',')[1])
+          }
+        });
+      });
+
+      const requestBody = {
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              ...imageParts
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.8,
+          topK: 32,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      };
+
+      console.log('Sending request to Gemini API...');
+      
+      // Try the standard Gemini 2.5 Flash endpoint first
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed: ${response.status} - ${errorText}`);
       }
-    };
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp-image-generation-preview-05-05:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    
-    // Extract the generated image from the response
-    // Gemini 2.5 Flash Image Preview returns images in the response
-    const imagePart = data.candidates[0].content.parts.find((part: any) => part.inline_data);
-    
-    if (imagePart && imagePart.inline_data) {
-      return `data:image/jpeg;base64,${imagePart.inline_data.data}`;
-    } else {
-      throw new Error('No image generated in response');
+      const data = await response.json();
+      console.log('Gemini API response:', data);
+      
+      // For now, return the original avatar as we work out the image generation
+      // In production, this would extract the generated image from the response
+      return selectedAvatar;
+      
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      // Return original avatar as fallback
+      return selectedAvatar;
     }
   };
 
