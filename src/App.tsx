@@ -140,11 +140,9 @@ function App() {
       // Initialize the Google AI client
       const genAI = new GoogleGenerativeAI(apiKey);
       
-      // Get the generative model
+      // Get the generative model - using the exact model you specified
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash-exp" 
-        // Note: We might need to adjust the model name based on availability
-        // gemini-2.5-flash-image-preview might not be available in the JS SDK yet
+        model: "gemini-2.5-flash-image" 
       });
 
       // Prepare the prompt
@@ -229,7 +227,7 @@ function App() {
       
       // Show helpful error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`AI Outfit generation failed: ${errorMessage}\n\nPlease ensure:\n1. Your API key is valid\n2. You have set up billing for Gemini API\n3. The model gemini-2.0-flash-exp supports image generation`);
+      alert(`AI Outfit generation failed: ${errorMessage}\n\nPlease ensure:\n1. Your API key is valid\n2. You have set up billing for Gemini API\n3. You have access to gemini-2.5-flash-image model`);
       
       return 'error';
     }
