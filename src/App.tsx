@@ -114,8 +114,11 @@ function App() {
     setIsGenerating(true);
     
     try {
-      // Direct Gemini 2.5 Flash Image Preview API call
-      const generatedImage = await callGeminiAPI(uploadedImages, selectedAvatar, eventType, apiKey);
+      // Add minimum 10-second delay to simulate realistic generation time
+      const [generatedImage] = await Promise.all([
+        callGeminiAPI(uploadedImages, selectedAvatar, eventType, apiKey),
+        new Promise(resolve => setTimeout(resolve, 10000)) // Minimum 10 seconds
+      ]);
       setGeneratedOutfit(generatedImage);
     } catch (error) {
       console.error('AI generation failed:', error);
@@ -496,7 +499,7 @@ function App() {
 
               {/* Loading State */}
               {isGenerating && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
                   <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
@@ -509,7 +512,7 @@ function App() {
 
               {/* Event Selection Modal */}
               {showEventModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
                   <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
                     <h3 className="text-xl font-bold text-purple-700 mb-4">Select Event Type</h3>
                     <p className="text-gray-600 mb-4">Choose the occasion for your outfit:</p>
@@ -536,7 +539,7 @@ function App() {
 
               {/* API Key Setup Modal */}
               {showApiKeyModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
                   <div className="bg-white rounded-lg p-4 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
                     <h3 className="text-xl font-semibold text-purple-700 mb-3">AI Assistant Setup</h3>
                     
