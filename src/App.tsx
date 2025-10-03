@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 function App() {
   const [activeTab, setActiveTab] = useState('chat');
@@ -131,64 +132,104 @@ function App() {
     }
   };
 
-  // Gemini 2.5 Flash Image Preview integration with Python backend
+  // Direct Gemini 2.5 Flash Image integration using JavaScript SDK
   const generateOutfitWithLMArena = async (clothingImages: string[], avatarImage: string, eventType: string) => {
     console.log(`Using Gemini 2.5 Flash Image for ${eventType} event`);
     
     try {
-      // Prepare the request for our Python backend
-      const requestBody = {
-        api_key: apiKey,
-        avatar_image: avatarImage,
-        clothing_images: clothingImages.slice(0, 3), // Limit to 3 clothing items
-        event_type: eventType
-      };
-
-      console.log('Sending request to Python backend...');
-
-      // Call our Python backend
-      const response = await fetch('http://localhost:5000/api/generate-outfit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+      // Initialize the Google AI client
+      const genAI = new GoogleGenerativeAI(apiKey);
+      
+      // Get the generative model
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash-exp" 
+        // Note: We might need to adjust the model name based on availability
+        // gemini-2.5-flash-image-preview might not be available in the JS SDK yet
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Backend request failed: ${response.status}`);
+      // Prepare the prompt
+      const prompt = `Dress this anime girl avatar with the provided clothing items for a ${eventType} event. 
+      Create a complete, fashionable anime-style outfit that properly fits the avatar's body.
+      The clothing should be realistically integrated onto the avatar, not just placed beside it.
+      Generate a full-body anime-style image of the avatar wearing the complete outfit.`;
+
+      // Convert base64 images to the format expected by the SDK
+      const base64ToGenerativePart = (base64Data: string, mimeType: string) => {
+        // Remove data URL prefix if present
+        const base64WithoutPrefix = base64Data.includes('base64,') 
+          ? base64Data.split('base64,')[1] 
+          : base64Data;
+        
+        return {
+          inlineData: {
+            data: base64WithoutPrefix,
+            mimeType: mimeType
+          }
+        };
+      };
+
+      // Prepare image parts
+      const imageParts = [
+        base64ToGenerativePart(avatarImage, 'image/jpeg')
+      ];
+
+      // Add clothing images (limit to 2 to avoid overwhelming the model)
+      clothingImages.slice(0, 2).forEach(img => {
+        imageParts.push(base64ToGenerativePart(img, 'image/jpeg'));
+      });
+
+      console.log('Sending request to Gemini 2.5 Flash Image...');
+
+      // Generate content
+      const result = await model.generateContent([prompt, ...imageParts]);
+      const response = await result.response;
+      
+      console.log('Generation response:', response);
+
+      // Check if we got an image in the response
+      if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+        const content = response.candidates[0].content;
+        
+        // Look for image data in the response parts
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+            const generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            console.log('Successfully extracted generated image');
+            
+            // Save to localStorage for persistence
+            try {
+              const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
+              savedOutfits.push({
+                image: generatedImage,
+                eventType: eventType,
+                timestamp: new Date().toISOString()
+              });
+              localStorage.setItem('generated_outfits', JSON.stringify(savedOutfits));
+            } catch (saveError) {
+              console.warn('Could not save outfit to localStorage:', saveError);
+            }
+            
+            return generatedImage;
+          }
+        }
+        
+        // If we got text instead of image, show what the model said
+        for (const part of content.parts) {
+          if (part.text) {
+            console.log('Model returned text:', part.text);
+          }
+        }
       }
 
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Backend generation failed');
-      }
-
-      console.log('Successfully received generated image from Gemini 2.5 Flash Image');
-      
-      // Save to localStorage for persistence
-      try {
-        const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
-        savedOutfits.push({
-          image: data.generated_image,
-          eventType: eventType,
-          timestamp: new Date().toISOString()
-        });
-        localStorage.setItem('generated_outfits', JSON.stringify(savedOutfits));
-      } catch (saveError) {
-        console.warn('Could not save outfit to localStorage:', saveError);
-      }
-      
-      return data.generated_image;
+      // If no image was generated
+      throw new Error('The model did not generate an image. It may have returned text instead.');
 
     } catch (error) {
       console.error('Gemini 2.5 Flash Image generation failed:', error);
       
       // Show helpful error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`AI Outfit generation failed: ${errorMessage}\n\nPlease ensure:\n1. The Python backend is running (cd backend && python app.py)\n2. You have set up billing for Gemini API\n3. Your API key has access to Gemini 2.5 Flash Image`);
+      alert(`AI Outfit generation failed: ${errorMessage}\n\nPlease ensure:\n1. Your API key is valid\n2. You have set up billing for Gemini API\n3. The model gemini-2.0-flash-exp supports image generation`);
       
       return 'error';
     }
