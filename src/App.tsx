@@ -19,6 +19,7 @@ function App() {
     // Check if API key exists in localStorage
     return localStorage.getItem('gemini_api_key') || '';
   });
+  const [generatorType, setGeneratorType] = useState<'paid' | 'free'>('paid'); // 'paid' for Google API, 'free' for LM Arena
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Background and avatar mappings
@@ -115,17 +116,25 @@ function App() {
     setIsGenerating(true);
     
     try {
-      // Use Gemini 2.5 Flash Image for actual outfit generation
-      const generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
+      let generatedImage;
+      
+      // Use the selected generator type
+      if (generatorType === 'paid') {
+        // Use Gemini 2.5 Flash Image for actual outfit generation
+        generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
+      } else {
+        // Use LM Arena free generator
+        generatedImage = await generateOutfitWithLMArena(uploadedImages, selectedAvatar, eventType);
+      }
       
       if (generatedImage === 'error') {
-        throw new Error('Gemini generation failed');
+        throw new Error('Outfit generation failed');
       }
       
       setGeneratedOutfit(generatedImage);
     } catch (error) {
       console.error('Outfit generation failed:', error);
-      alert('Outfit generation failed. Please check your API key and try again.');
+      alert('Outfit generation failed. Please try again.');
       setGeneratedOutfit(selectedAvatar); // Fallback to original avatar
     } finally {
       setIsGenerating(false);
@@ -225,6 +234,156 @@ function App() {
       // Show helpful error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       alert(`AI Outfit generation failed: ${errorMessage}\n\nPlease ensure:\n1. Your API key is valid\n2. You have set up billing for Gemini API\n3. You have access to gemini-2.5-flash-image model`);
+      
+      return 'error';
+    }
+  };
+
+  // LM Arena Free Generator - Using simulation for now since we don't have direct API access
+  const generateOutfitWithLMArena = async (clothingImages: string[], avatarImage: string, eventType: string) => {
+    console.log(`Using LM Arena free service for ${eventType} event`);
+    
+    try {
+      // For now, we'll use a sophisticated simulation since LM Arena doesn't have a public API
+      // In the future, we could potentially reverse engineer their service
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('Could not create canvas context');
+      }
+
+      // Load the base avatar
+      const avatarImg = new Image();
+      await new Promise((resolve, reject) => {
+        avatarImg.onload = resolve;
+        avatarImg.onerror = reject;
+        avatarImg.src = avatarImage;
+      });
+      
+      // Set canvas to avatar size
+      canvas.width = avatarImg.width;
+      canvas.height = avatarImg.height;
+
+      // Draw the base avatar
+      ctx.drawImage(avatarImg, 0, 0);
+
+      // Select clothing items for the outfit
+      const selectedClothes = clothingImages
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.min(3, clothingImages.length));
+
+      // Apply sophisticated clothing placement
+      for (let i = 0; i < selectedClothes.length; i++) {
+        const clothImg = new Image();
+        await new Promise((resolve, reject) => {
+          clothImg.onload = resolve;
+          clothImg.onerror = reject;
+          clothImg.src = selectedClothes[i];
+        });
+
+        // Intelligent positioning based on clothing type
+        let scale, x, y;
+        
+        if (clothImg.width > clothImg.height) {
+          // Likely a top/dress
+          scale = 0.6 + (Math.random() * 0.2);
+          x = (canvas.width - clothImg.width * scale) * 0.3;
+          y = (canvas.height - clothImg.height * scale) * 0.2;
+        } else {
+          // Likely pants/skirt
+          scale = 0.5 + (Math.random() * 0.2);
+          x = (canvas.width - clothImg.width * scale) * 0.4;
+          y = (canvas.height - clothImg.height * scale) * 0.6;
+        }
+
+        ctx.save();
+        
+        // Apply event-specific styling
+        switch (eventType.toLowerCase()) {
+          case 'formal/black tie':
+          case 'wedding':
+          case 'gala':
+            ctx.globalAlpha = 0.9;
+            ctx.filter = 'brightness(1.1) contrast(1.1)';
+            break;
+          case 'party/night out':
+          case 'cocktail party':
+            ctx.globalAlpha = 0.85;
+            ctx.filter = 'saturate(1.2) brightness(1.05)';
+            break;
+          case 'beach/vacation':
+            ctx.globalAlpha = 0.8;
+            ctx.filter = 'brightness(1.2) hue-rotate(10deg)';
+            break;
+          case 'work/office':
+            ctx.globalAlpha = 0.9;
+            ctx.filter = 'contrast(1.1) saturate(0.9)';
+            break;
+          default:
+            ctx.globalAlpha = 0.85;
+            ctx.filter = 'brightness(1.05)';
+        }
+
+        // Draw clothing with professional positioning
+        ctx.drawImage(
+          clothImg,
+          x,
+          y,
+          clothImg.width * scale,
+          clothImg.height * scale
+        );
+        
+        ctx.restore();
+      }
+
+      // Apply final event-specific color grading
+      ctx.save();
+      switch (eventType.toLowerCase()) {
+        case 'formal/black tie':
+          ctx.fillStyle = 'rgba(0, 0, 30, 0.1)';
+          break;
+        case 'party/night out':
+          ctx.fillStyle = 'rgba(100, 0, 100, 0.08)';
+          break;
+        case 'beach/vacation':
+          ctx.fillStyle = 'rgba(255, 200, 0, 0.05)';
+          break;
+        case 'work/office':
+          ctx.fillStyle = 'rgba(80, 80, 100, 0.08)';
+          break;
+        default:
+          ctx.fillStyle = 'rgba(100, 100, 100, 0.05)';
+      }
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      // Convert to data URL
+      const generatedOutfit = canvas.toDataURL('image/jpeg', 0.9);
+      console.log('Successfully generated free outfit');
+      
+      // Save to localStorage for persistence
+      try {
+        const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
+        savedOutfits.push({
+          image: generatedOutfit,
+          eventType: eventType,
+          generatorType: 'free',
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('generated_outfits', JSON.stringify(savedOutfits));
+      } catch (saveError) {
+        console.warn('Could not save outfit to localStorage:', saveError);
+      }
+      
+      return generatedOutfit;
+
+    } catch (error) {
+      console.error('LM Arena generation failed:', error);
+      
+      // Show helpful error message
+      alert('Free outfit generation failed. This is a simulation since LM Arena does not have a public API. For actual AI-generated outfits, please use the paid option.');
       
       return 'error';
     }
@@ -475,35 +634,80 @@ function App() {
             </div>
           )}
 
-          {activeTab === 'outfit' && (
-            <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
-              <h2 className="text-2xl font-bold text-purple-700 mb-6">Outfit Suggestions</h2>
-              
-              {!generatedOutfit ? (
-                <div className="flex flex-col md:flex-row gap-6 items-center mb-6">
-                  <div className="flex-shrink-0">
-                    <img 
-                      src={selectedAvatar} 
-                      alt="Selected Avatar" 
-                      className="w-32 h-32 object-cover rounded-full border-4 border-purple-300"
-                    />
-                    <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
+              {activeTab === 'outfit' && (
+                <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
+                  <h2 className="text-2xl font-bold text-purple-700 mb-6">Outfit Suggestions</h2>
+                  
+                  {/* Generator Type Selection */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Choose Generator Type:</h3>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setGeneratorType('paid')}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                          generatorType === 'paid'
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-lg'
+                            : 'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">💰</div>
+                        <div className="font-semibold">Pay</div>
+                        <div className="text-sm opacity-80">High Quality AI</div>
+                        <div className="text-xs mt-1">$0.04 per image</div>
+                      </button>
+                      <button
+                        onClick={() => setGeneratorType('free')}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                          generatorType === 'free'
+                            ? 'bg-green-600 text-white border-green-600 shadow-lg'
+                            : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">🎁</div>
+                        <div className="font-semibold">Free</div>
+                        <div className="text-sm opacity-80">LM Arena Simulation</div>
+                        <div className="text-xs mt-1">No cost, limited features</div>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-3">Generate Outfit Suggestions</h3>
-                    <p className="text-gray-600 mb-4">
-                      K1R4 will analyze your wardrobe and create anime-style outfits for your avatar.
-                    </p>
-                    <button 
-                      onClick={handleGenerateOutfit}
-                      className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-purple-400"
-                      disabled={uploadedImages.length === 0}
-                    >
-                      {uploadedImages.length === 0 ? 'Upload Clothes First' : 'Generate Outfits'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
+                  
+                  {!generatedOutfit ? (
+                    <div className="flex flex-col md:flex-row gap-6 items-center mb-6">
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={selectedAvatar} 
+                          alt="Selected Avatar" 
+                          className="w-32 h-32 object-cover rounded-full border-4 border-purple-300"
+                        />
+                        <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold mb-3">
+                          {generatorType === 'paid' ? 'AI Outfit Generation' : 'Free Outfit Simulation'}
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {generatorType === 'paid' 
+                            ? 'K1R4 will use advanced AI to create high-quality anime-style outfits for your avatar.'
+                            : 'K1R4 will create a simulated outfit using your clothing items (no AI generation).'
+                          }
+                        </p>
+                        <button 
+                          onClick={handleGenerateOutfit}
+                          className={`px-6 py-3 rounded-lg text-white hover:opacity-90 disabled:opacity-50 ${
+                            generatorType === 'paid' ? 'bg-purple-600' : 'bg-green-600'
+                          }`}
+                          disabled={uploadedImages.length === 0}
+                        >
+                          {uploadedImages.length === 0 
+                            ? 'Upload Clothes First' 
+                            : generatorType === 'paid' 
+                              ? 'Generate AI Outfits' 
+                              : 'Generate Free Outfits'
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-purple-700 mb-4">Your Generated Outfit</h3>
                   <div className="flex flex-col items-center gap-6">
