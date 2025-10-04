@@ -13,24 +13,21 @@ function App() {
   });
   const [showEventModal, setShowEventModal] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<string | null>(null);
-  const [freeOutfitImages, setFreeOutfitImages] = useState<string[] | null>(null); // Store free generator clothing items
+  const [freeOutfitImages, setFreeOutfitImages] = useState<string[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKey, setApiKey] = useState<string>(() => {
-    // Check if API key exists in localStorage
     return localStorage.getItem('gemini_api_key') || '';
   });
-  const [generatorType, setGeneratorType] = useState<'paid' | 'free'>('paid'); // 'paid' for Google API, 'free' for clothing display
+  const [generatorType, setGeneratorType] = useState<'paid' | 'free'>('paid');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Background and avatar mappings
   const backgrounds = [
     { value: '/backgrounds/mbckgrd1.jpg', label: 'African Style', avatar: '/avatars/avatar_01.jpeg' },
     { value: '/backgrounds/mbckgrd2.jpg', label: 'Asian Style', avatar: '/avatars/avatar_02.jpeg' },
     { value: '/backgrounds/mbckgrd3.jpg', label: 'European Style', avatar: '/avatars/avatar_03.jpeg' },
   ];
 
-  // Event types for outfit generation
   const eventTypes = [
     'Casual', 'Work/Office', 'Party/Night Out', 'Date Night', 'Formal/Black Tie',
     'Business Meeting', 'Brunch', 'Beach/Vacation', 'Workout/Athletic', 'Coffee Date',
@@ -40,14 +37,12 @@ function App() {
 
   const handleBackgroundChange = (backgroundValue: string) => {
     setSelectedBackground(backgroundValue);
-    // Automatically set the corresponding avatar
     const bg = backgrounds.find(b => b.value === backgroundValue);
     if (bg) {
       setSelectedAvatar(bg.avatar);
     }
   };
 
-  // File upload handlers
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
@@ -73,7 +68,6 @@ function App() {
     if (fileInputRef.current) {
       fileInputRef.current.accept = 'image/*';
       fileInputRef.current.multiple = false;
-      // Remove any capture attribute to ensure gallery opens by default
       fileInputRef.current.removeAttribute('capture');
       fileInputRef.current.click();
     }
@@ -98,14 +92,12 @@ function App() {
     }
   };
 
-  // Outfit generation functions
   const handleGenerateOutfit = () => {
     if (uploadedImages.length === 0) {
       alert('Please upload some clothing items to your wardrobe first!');
       return;
     }
     
-    // Only check API key for paid option
     if (generatorType === 'paid' && !checkApiKeyBeforeGeneration()) {
       return;
     }
@@ -118,20 +110,16 @@ function App() {
     setIsGenerating(true);
     
     try {
-      // Reset previous results
       setGeneratedOutfit(null);
       setFreeOutfitImages(null);
       
-      // Use the selected generator type
       if (generatorType === 'paid') {
-        // Use Gemini 2.5 Flash Image for actual outfit generation
         const generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
         if (generatedImage === 'error') {
           throw new Error('Outfit generation failed');
         }
         setGeneratedOutfit(generatedImage);
       } else {
-        // Use free generator (shows clothing items only, no avatar)
         const selectedImages = await generateOutfitWithLMArena(uploadedImages, eventType);
         if (selectedImages === 'error') {
           throw new Error('Outfit combination failed');
@@ -141,31 +129,24 @@ function App() {
     } catch (error) {
       console.error('Outfit generation failed:', error);
       alert('Outfit generation failed. Please try again.');
-      setGeneratedOutfit(selectedAvatar); // Fallback to original avatar
+      setGeneratedOutfit(selectedAvatar);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Simple Gemini 2.5 Flash Image integration
   const generateOutfitWithGemini = async (clothingImages: string[], avatarImage: string, eventType: string) => {
     console.log(`Using Gemini 2.5 Flash Image for ${eventType} event`);
     
     try {
-      // Initialize the Google AI client
       const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // Get the generative model - using the exact model you specified
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash-image" 
       });
 
-      // Use the exact simple prompt from your example
       const prompt = "Make the full body avatar wear the cloths in an anime style image.";
 
-      // Convert base64 images to the format expected by the SDK
       const base64ToGenerativePart = (base64Data: string, mimeType: string) => {
-        // Remove data URL prefix if present
         const base64WithoutPrefix = base64Data.includes('base64,') 
           ? base64Data.split('base64,')[1] 
           : base64Data;
@@ -178,35 +159,29 @@ function App() {
         };
       };
 
-      // Prepare image parts - avatar first, then all clothing images
       const imageParts = [
         base64ToGenerativePart(avatarImage, 'image/jpeg')
       ];
 
-      // Add ALL clothing images - let Gemini handle how many to use
       clothingImages.forEach(img => {
         imageParts.push(base64ToGenerativePart(img, 'image/jpeg'));
       });
 
       console.log('Sending request to Gemini 2.5 Flash Image...');
 
-      // Generate content
       const result = await model.generateContent([prompt, ...imageParts]);
       const response = await result.response;
       
       console.log('Generation response:', response);
 
-      // Check if we got an image in the response
       if (response.candidates && response.candidates[0] && response.candidates[0].content) {
         const content = response.candidates[0].content;
         
-        // Look for image data in the response parts
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
             const generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
             console.log('Successfully extracted generated image');
             
-            // Save to localStorage for persistence
             try {
               const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
               savedOutfits.push({
@@ -224,7 +199,6 @@ function App() {
           }
         }
         
-        // If we got text instead of image, show what the model said
         for (const part of content.parts) {
           if (part.text) {
             console.log('Model returned text:', part.text);
@@ -232,13 +206,11 @@ function App() {
         }
       }
 
-      // If no image was generated
       throw new Error('The model did not generate an image. It may have returned text instead.');
 
     } catch (error) {
       console.error('Gemini 2.5 Flash Image generation failed:', error);
       
-      // Show helpful error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       alert(`AI Outfit generation failed: ${errorMessage}\n\nPlease ensure:\n1. Your API key is valid\n2. You have set up billing for Gemini API\n3. You have access to gemini-2.5-flash-image model`);
       
@@ -246,19 +218,16 @@ function App() {
     }
   };
 
-  // Free Generator - Return array of selected clothing images
   const generateOutfitWithLMArena = async (clothingImages: string[], eventType: string): Promise<string[] | 'error'> => {
     console.log(`Creating free outfit combination for ${eventType} event`);
     
     try {
-      // Select 3-5 random clothing items based on the event type
       const selectedClothes = clothingImages
         .sort(() => Math.random() - 0.5)
         .slice(0, Math.min(5, Math.max(3, clothingImages.length)));
 
       console.log(`Selected ${selectedClothes.length} items for ${eventType} outfit`);
       
-      // Save to localStorage for persistence
       try {
         const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
         savedOutfits.push({
@@ -276,10 +245,7 @@ function App() {
 
     } catch (error) {
       console.error('Free outfit combination failed:', error);
-      
-      // User-friendly error message
       alert('Free outfit combination is temporarily unavailable. Please try again.');
-      
       return 'error';
     }
   };
@@ -290,7 +256,6 @@ function App() {
     setShowEventModal(true);
   };
 
-  // API Key management
   const handleSaveApiKey = (key: string) => {
     localStorage.setItem('gemini_api_key', key);
     setApiKey(key);
@@ -314,16 +279,11 @@ function App() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="w-full py-6 px-4 glass-effect relative z-50">
-        {/* Header Background */}
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url('/backgrounds/head-bckgrd.png')` }}
         />
-        
-        {/* Glass overlay */}
         <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
-        
-        {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto w-full">
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-4">
@@ -339,11 +299,8 @@ function App() {
               </div>
             </div>
             
-            {/* Navigation Menu Below Title */}
             <div className="flex items-center gap-4">
-              {/* API Key Status & Background Menu */}
               <div className="flex items-center gap-2">
-                {/* API Key Status */}
                 {apiKey && (
                   <div className="text-white text-sm bg-green-600/80 px-2 py-1 rounded-full flex items-center gap-1">
                     <span className="text-xs">🔑</span>
@@ -358,7 +315,6 @@ function App() {
                   </div>
                 )}
                 
-                {/* Background Dropdown Menu */}
                 <div className="relative">
                   <button 
                     onClick={() => setShowBackgroundMenu(!showBackgroundMenu)}
@@ -398,7 +354,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Navigation Tabs as Icons */}
               <div className="flex gap-3">
                 {['chat', 'wardrobe', 'outfit'].map((tab) => (
                   <button
@@ -431,7 +386,6 @@ function App() {
         
         {/* Main Content */}
         <div className="relative z-10 container mx-auto p-4">
-          {/* Simple content for each tab */}
           {activeTab === 'chat' && (
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
               <div className="space-y-3">
@@ -457,7 +411,6 @@ function App() {
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
               <h2 className="text-2xl font-bold text-purple-700 mb-6">Build Your Wardrobe</h2>
               
-              {/* Upload Options */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <button 
                   onClick={handleSingleUploadClick}
@@ -485,7 +438,6 @@ function App() {
                 </button>
               </div>
 
-              {/* Hidden file input */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -493,7 +445,6 @@ function App() {
                 className="hidden"
               />
 
-              {/* Uploaded Images Gallery */}
               {uploadedImages.length > 0 && (
                 <div className="mt-8">
                   <h3 className="text-xl font-semibold text-purple-700 mb-4">Your Wardrobe ({uploadedImages.length} items)</h3>
@@ -519,7 +470,6 @@ function App() {
                 </div>
               )}
 
-              {/* Empty state */}
               {uploadedImages.length === 0 && (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">👗</div>
@@ -534,7 +484,7 @@ function App() {
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
               <h2 className="text-2xl font-bold text-purple-700 mb-6">Outfit Suggestions</h2>
               
-              {/* Compact Generator Type Selection */}
+              {/* Compact Generator Selection */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Choose Generator:</h3>
                 <div className="flex gap-2">
@@ -641,51 +591,6 @@ function App() {
                       </div>
                     </>
                   )}
-
-                  {/* Free Generator Result - FULL SCREEN DISPLAY */}
-                  {generatorType === 'free' && freeOutfitImages && (
-                    <div className="w-full">
-                      <h3 className="text-xl font-semibold text-green-700 mb-4">Your Selected Outfit Combination</h3>
-                      
-                      {/* Full-width responsive grid with NO container constraints */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full mb-6">
-                        {freeOutfitImages.map((image, index) => (
-                          <div key={index} className="bg-white rounded-lg p-3 shadow-md border-2 border-green-200 hover:border-green-400 transition-all">
-                            <img 
-                              src={image} 
-                              alt={`Outfit item ${index + 1}`}
-                              className="w-full h-40 object-contain rounded-md"
-                            />
-                            <div className="mt-2 text-xs text-gray-600 bg-green-50 rounded px-2 py-1 text-center">
-                              Item {index + 1}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <div className="text-sm text-gray-600 mb-4">
-                        <p>✨ Smart combination selected from your wardrobe</p>
-                      </div>
-                      
-                      <div className="flex gap-4 justify-center">
-                        <button 
-                          onClick={handleRegenerateOutfit}
-                          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                        >
-                          Try Another Combination
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setGeneratedOutfit(null);
-                            setFreeOutfitImages(null);
-                          }}
-                          className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                        >
-                          Back to Wardrobe
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -737,7 +642,6 @@ function App() {
                     
                     <div className="flex-1 overflow-y-auto pr-1">
                       <div className="space-y-3">
-                        {/* Step 1 */}
                         <div className="bg-purple-50 p-3 rounded-md">
                           <div className="flex items-center gap-2 mb-1">
                             <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">1</div>
@@ -754,7 +658,6 @@ function App() {
                           </a>
                         </div>
 
-                        {/* Step 2 */}
                         <div className="bg-purple-50 p-3 rounded-md">
                           <div className="flex items-center gap-2 mb-1">
                             <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">2</div>
@@ -768,7 +671,6 @@ function App() {
                           </ol>
                         </div>
 
-                        {/* Step 3 */}
                         <div className="bg-purple-50 p-3 rounded-md">
                           <div className="flex items-center gap-2 mb-1">
                             <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">3</div>
@@ -787,7 +689,6 @@ function App() {
                           </p>
                         </div>
 
-                        {/* Step 4 */}
                         <div className="bg-purple-50 p-3 rounded-md">
                           <div className="flex items-center gap-2 mb-1">
                             <div className="bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">4</div>
@@ -821,6 +722,75 @@ function App() {
             </div>
           )}
         </div>
+
+        {/* SEPARATE FREE OUTFIT DISPLAY WINDOW - FULL SCREEN */}
+        {freeOutfitImages && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="bg-green-600 text-white p-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Your Selected Outfit Combination</h2>
+                  <button 
+                    onClick={() => setFreeOutfitImages(null)}
+                    className="text-white hover:text-green-200 text-2xl font-bold w-10 h-10 rounded-full hover:bg-green-700 flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-green-100 mt-2">
+                  Smart combination selected from your wardrobe • {freeOutfitImages.length} items
+                </p>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-auto p-6">
+                {/* Full-width responsive grid with maximum space */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 w-full">
+                  {freeOutfitImages.map((image, index) => (
+                    <div key={index} className="group">
+                      <div className="bg-white rounded-xl shadow-lg border-2 border-green-200 hover:border-green-400 hover:shadow-xl transition-all duration-300 p-4 h-full flex flex-col">
+                        <div className="flex-1 flex items-center justify-center min-h-[200px]">
+                          <img 
+                            src={image} 
+                            alt={`Outfit item ${index + 1}`}
+                            className="max-w-full max-h-48 object-contain rounded-lg"
+                          />
+                        </div>
+                        <div className="mt-3 text-center">
+                          <div className="text-sm font-semibold text-gray-700 bg-green-50 rounded-full px-3 py-1 inline-block">
+                            Item {index + 1}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-gray-200 p-6 bg-gray-50">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <button 
+                    onClick={handleRegenerateOutfit}
+                    className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-lg transition-all hover:scale-105"
+                  >
+                    🔄 Try Another Combination
+                  </button>
+                  <button 
+                    onClick={() => setFreeOutfitImages(null)}
+                    className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold text-lg transition-all"
+                  >
+                    ← Back to Wardrobe
+                  </button>
+                </div>
+                <p className="text-center text-gray-600 mt-4 text-sm">
+                  ✨ Each combination is uniquely selected from your wardrobe items
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
