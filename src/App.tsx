@@ -124,8 +124,8 @@ function App() {
         // Use Gemini 2.5 Flash Image for actual outfit generation
         generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
       } else {
-        // Use LM Arena free generator
-        generatedImage = await generateOutfitWithLMArena(uploadedImages, selectedAvatar, eventType);
+        // Use free generator (shows clothing items only, no avatar)
+        generatedImage = await generateOutfitWithLMArena(uploadedImages, eventType);
       }
       
       if (generatedImage === 'error') {
@@ -240,12 +240,12 @@ function App() {
     }
   };
 
-  // Free Generator - Client-side simulation (no backend required)
-  const generateOutfitWithLMArena = async (clothingImages: string[], avatarImage: string, eventType: string) => {
-    console.log(`Using free service for ${eventType} event`);
+  // Free Generator - Show clothing combinations without avatar
+  const generateOutfitWithLMArena = async (clothingImages: string[], eventType: string) => {
+    console.log(`Creating free outfit combination for ${eventType} event`);
     
     try {
-      // Create a sophisticated client-side simulation
+      // Create a canvas to display clothing items in a professional layout
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
@@ -253,27 +253,33 @@ function App() {
         throw new Error('Canvas not supported in this browser');
       }
 
-      // Load the base avatar
-      const avatarImg = new Image();
-      await new Promise((resolve, reject) => {
-        avatarImg.onload = resolve;
-        avatarImg.onerror = reject;
-        avatarImg.src = avatarImage;
-      });
-      
-      // Set canvas to avatar size
-      canvas.width = avatarImg.width;
-      canvas.height = avatarImg.height;
+      // Set canvas size for clothing display
+      canvas.width = 600;
+      canvas.height = 400;
 
-      // Draw the base avatar
-      ctx.drawImage(avatarImg, 0, 0);
+      // Create a clean background
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Select clothing items for the outfit (limit to 3 for performance)
+      // Add event type title
+      ctx.fillStyle = '#374151';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${eventType} Outfit Suggestion`, canvas.width / 2, 40);
+
+      // Select 3-5 clothing items for a complete outfit
       const selectedClothes = clothingImages
         .sort(() => Math.random() - 0.5)
-        .slice(0, Math.min(3, clothingImages.length));
+        .slice(0, Math.min(5, Math.max(3, clothingImages.length)));
 
-      // Apply intelligent clothing placement
+      // Calculate grid layout
+      const itemsPerRow = Math.min(3, selectedClothes.length);
+      const itemSize = 150;
+      const spacing = 30;
+      const startX = (canvas.width - (itemsPerRow * itemSize + (itemsPerRow - 1) * spacing)) / 2;
+      const startY = 80;
+
+      // Draw each clothing item in a professional grid
       for (let i = 0; i < selectedClothes.length; i++) {
         const clothImg = new Image();
         await new Promise((resolve, reject) => {
@@ -282,91 +288,50 @@ function App() {
           clothImg.src = selectedClothes[i];
         });
 
-        // Smart positioning based on clothing type
-        let scale, x, y;
-        
-        if (clothImg.width > clothImg.height) {
-          // Likely a top/dress - position on upper body
-          scale = 0.6 + (Math.random() * 0.2);
-          x = (canvas.width - clothImg.width * scale) * 0.3;
-          y = (canvas.height - clothImg.height * scale) * 0.2;
-        } else {
-          // Likely pants/skirt - position on lower body
-          scale = 0.5 + (Math.random() * 0.2);
-          x = (canvas.width - clothImg.width * scale) * 0.4;
-          y = (canvas.height - clothImg.height * scale) * 0.6;
-        }
+        const row = Math.floor(i / itemsPerRow);
+        const col = i % itemsPerRow;
+        const x = startX + col * (itemSize + spacing);
+        const y = startY + row * (itemSize + spacing + 20);
 
-        ctx.save();
-        
-        // Apply event-specific styling
-        switch (eventType.toLowerCase()) {
-          case 'formal/black tie':
-          case 'wedding':
-          case 'gala':
-            ctx.globalAlpha = 0.9;
-            ctx.filter = 'brightness(1.1) contrast(1.1)';
-            break;
-          case 'party/night out':
-          case 'cocktail party':
-            ctx.globalAlpha = 0.85;
-            ctx.filter = 'saturate(1.2) brightness(1.05)';
-            break;
-          case 'beach/vacation':
-            ctx.globalAlpha = 0.8;
-            ctx.filter = 'brightness(1.2) hue-rotate(10deg)';
-            break;
-          case 'work/office':
-            ctx.globalAlpha = 0.9;
-            ctx.filter = 'contrast(1.1) saturate(0.9)';
-            break;
-          default:
-            ctx.globalAlpha = 0.85;
-            ctx.filter = 'brightness(1.05)';
-        }
+        // Draw background for clothing item
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 2;
+        ctx.fillRect(x - 5, y - 5, itemSize + 10, itemSize + 10);
+        ctx.strokeRect(x - 5, y - 5, itemSize + 10, itemSize + 10);
 
-        // Draw clothing with professional positioning
-        ctx.drawImage(
-          clothImg,
-          x,
-          y,
-          clothImg.width * scale,
-          clothImg.height * scale
-        );
-        
-        ctx.restore();
+        // Calculate scaling to fit itemSize while maintaining aspect ratio
+        const scale = Math.min(itemSize / clothImg.width, itemSize / clothImg.height);
+        const scaledWidth = clothImg.width * scale;
+        const scaledHeight = clothImg.height * scale;
+        const offsetX = x + (itemSize - scaledWidth) / 2;
+        const offsetY = y + (itemSize - scaledHeight) / 2;
+
+        // Draw the clothing item
+        ctx.drawImage(clothImg, offsetX, offsetY, scaledWidth, scaledHeight);
+
+        // Add item number
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Item ${i + 1}`, x + itemSize / 2, y + itemSize + 15);
       }
 
-      // Apply final event-specific color grading
-      ctx.save();
-      switch (eventType.toLowerCase()) {
-        case 'formal/black tie':
-          ctx.fillStyle = 'rgba(0, 0, 30, 0.1)';
-          break;
-        case 'party/night out':
-          ctx.fillStyle = 'rgba(100, 0, 100, 0.08)';
-          break;
-        case 'beach/vacation':
-          ctx.fillStyle = 'rgba(255, 200, 0, 0.05)';
-          break;
-        case 'work/office':
-          ctx.fillStyle = 'rgba(80, 80, 100, 0.08)';
-          break;
-        default:
-          ctx.fillStyle = 'rgba(100, 100, 100, 0.05)';
-      }
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
+      // Add footer text
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Outfit combination suggested by K1R4', canvas.width / 2, canvas.height - 20);
 
       // Convert to data URL
-      const generatedOutfit = canvas.toDataURL('image/jpeg', 0.9);
-      console.log('Successfully generated free outfit');
+      const outfitCombination = canvas.toDataURL('image/jpeg', 0.9);
+      console.log('Successfully created free outfit combination');
       
       // Save to localStorage for persistence
       try {
         const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
         savedOutfits.push({
-          image: generatedOutfit,
+          image: outfitCombination,
           eventType: eventType,
           generatorType: 'free',
           timestamp: new Date().toISOString()
@@ -376,13 +341,13 @@ function App() {
         console.warn('Could not save outfit to localStorage:', saveError);
       }
       
-      return generatedOutfit;
+      return outfitCombination;
 
     } catch (error) {
-      console.error('Free generation failed:', error);
+      console.error('Free outfit combination failed:', error);
       
       // User-friendly error message
-      alert('Free generation is temporarily unavailable. Please try again or use our premium service for the best results.');
+      alert('Free outfit combination is temporarily unavailable. Please try again.');
       
       return 'error';
     }
@@ -650,9 +615,9 @@ function App() {
                         }`}
                       >
                         <div className="text-xl mb-1">💰</div>
-                        <div className="font-semibold">Premium</div>
-                        <div className="text-sm opacity-80">Best Quality</div>
-                        <div className="text-xs mt-1">Pay per use</div>
+                        <div className="font-semibold">Outfit on K1R4</div>
+                        <div className="text-sm opacity-80">Paid version</div>
+                        <div className="text-xs mt-1">Best Quality</div>
                       </button>
                       <button
                         onClick={() => setGeneratorType('free')}
@@ -663,9 +628,9 @@ function App() {
                         }`}
                       >
                         <div className="text-xl mb-1">🎁</div>
-                        <div className="font-semibold">Free</div>
-                        <div className="text-sm opacity-80">Good Quality</div>
-                        <div className="text-xs mt-1">No cost</div>
+                        <div className="font-semibold">Chosen Outfit</div>
+                        <div className="text-sm opacity-80">Free version</div>
+                        <div className="text-xs mt-1">Clothing items only</div>
                       </button>
                     </div>
                   </div>
