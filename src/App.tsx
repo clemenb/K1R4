@@ -13,13 +13,11 @@ function App() {
   });
   const [showEventModal, setShowEventModal] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<string | null>(null);
-  const [freeOutfitImages, setFreeOutfitImages] = useState<string[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKey, setApiKey] = useState<string>(() => {
     return localStorage.getItem('gemini_api_key') || '';
   });
-  const [generatorType, setGeneratorType] = useState<'paid' | 'free'>('paid');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const backgrounds = [
@@ -98,7 +96,7 @@ function App() {
       return;
     }
     
-    if (generatorType === 'paid' && !checkApiKeyBeforeGeneration()) {
+    if (!checkApiKeyBeforeGeneration()) {
       return;
     }
     
@@ -111,21 +109,12 @@ function App() {
     
     try {
       setGeneratedOutfit(null);
-      setFreeOutfitImages(null);
       
-      if (generatorType === 'paid') {
-        const generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
-        if (generatedImage === 'error') {
-          throw new Error('Outfit generation failed');
-        }
-        setGeneratedOutfit(generatedImage);
-      } else {
-        const selectedImages = await generateOutfitWithLMArena(uploadedImages, eventType);
-        if (selectedImages === 'error') {
-          throw new Error('Outfit combination failed');
-        }
-        setFreeOutfitImages(selectedImages);
+      const generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
+      if (generatedImage === 'error') {
+        throw new Error('Outfit generation failed');
       }
+      setGeneratedOutfit(generatedImage);
     } catch (error) {
       console.error('Outfit generation failed:', error);
       alert('Outfit generation failed. Please try again.');
@@ -187,7 +176,6 @@ function App() {
               savedOutfits.push({
                 image: generatedImage,
                 eventType: eventType,
-                generatorType: 'paid',
                 timestamp: new Date().toISOString()
               });
               localStorage.setItem('generated_outfits', JSON.stringify(savedOutfits));
@@ -218,41 +206,8 @@ function App() {
     }
   };
 
-  const generateOutfitWithLMArena = async (clothingImages: string[], eventType: string): Promise<string[] | 'error'> => {
-    console.log(`Creating free outfit combination for ${eventType} event`);
-    
-    try {
-      const selectedClothes = clothingImages
-        .sort(() => Math.random() - 0.5)
-        .slice(0, Math.min(5, Math.max(3, clothingImages.length)));
-
-      console.log(`Selected ${selectedClothes.length} items for ${eventType} outfit`);
-      
-      try {
-        const savedOutfits = JSON.parse(localStorage.getItem('generated_outfits') || '[]');
-        savedOutfits.push({
-          images: selectedClothes,
-          eventType: eventType,
-          generatorType: 'free',
-          timestamp: new Date().toISOString()
-        });
-        localStorage.setItem('generated_outfits', JSON.stringify(savedOutfits));
-      } catch (saveError) {
-        console.warn('Could not save outfit to localStorage:', saveError);
-      }
-      
-      return selectedClothes;
-
-    } catch (error) {
-      console.error('Free outfit combination failed:', error);
-      alert('Free outfit combination is temporarily unavailable. Please try again.');
-      return 'error';
-    }
-  };
-
   const handleRegenerateOutfit = () => {
     setGeneratedOutfit(null);
-    setFreeOutfitImages(null);
     setShowEventModal(true);
   };
 
@@ -482,45 +437,19 @@ function App() {
 
           {activeTab === 'outfit' && (
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
-              <h2 className="text-2xl font-bold text-purple-700 mb-6">Outfit Suggestions</h2>
+              <h2 className="text-2xl font-bold text-purple-700 mb-6">AI Outfit Generation</h2>
               
-              {/* Compact Generator Selection */}
+              {/* No Generator Selection - Only AI Generation */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Choose Generator:</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setGeneratorType('paid')}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-sm ${
-                      generatorType === 'paid'
-                        ? 'bg-purple-600 text-white border-purple-600 shadow-lg'
-                        : 'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'
-                    }`}
-                  >
-                    <span className="text-base">💰</span>
-                    <span>Premium</span>
-                  </button>
-                  <button
-                    onClick={() => setGeneratorType('free')}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-sm ${
-                      generatorType === 'free'
-                        ? 'bg-green-600 text-white border-green-600 shadow-lg'
-                        : 'bg-white text-green-600 border-green-300 hover:bg-green-50'
-                    }`}
-                  >
-                    <span className="text-base">🎁</span>
-                    <span>Free</span>
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-2">
-                  {generatorType === 'paid' 
-                    ? 'AI-generated outfits with avatar' 
-                    : 'Smart clothing combinations from your wardrobe'
-                  }
+                <h3 className="text-lg font-semibold mb-3">Premium AI Outfit Generation</h3>
+                <p className="text-gray-600 mb-4">
+                  Create high-quality anime-style outfits with our premium AI service. 
+                  Upload your clothing items and let our AI create perfect outfits for any occasion.
                 </p>
               </div>
               
               {/* No Generated Outfit State */}
-              {!generatedOutfit && !freeOutfitImages ? (
+              {!generatedOutfit ? (
                 <div className="flex flex-col md:flex-row gap-6 items-center mb-6">
                   <div className="flex-shrink-0">
                     <img 
@@ -531,27 +460,19 @@ function App() {
                     <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-3">
-                      {generatorType === 'paid' ? 'Premium Outfit Generation' : 'Free Outfit Generation'}
-                    </h3>
+                    <h3 className="text-lg font-semibold mb-3">Create Your Perfect Outfit</h3>
                     <p className="text-gray-600 mb-4">
-                      {generatorType === 'paid' 
-                        ? 'Create high-quality anime-style outfits with our premium service.'
-                        : 'Get smart clothing combinations from your wardrobe for any occasion.'
-                      }
+                      Our AI will analyze your clothing items and create stunning anime-style outfits 
+                      that match your selected event type and personal style.
                     </p>
                     <button 
                       onClick={handleGenerateOutfit}
-                      className={`px-6 py-3 rounded-lg text-white hover:opacity-90 disabled:opacity-50 ${
-                        generatorType === 'paid' ? 'bg-purple-600' : 'bg-green-600'
-                      }`}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                       disabled={uploadedImages.length === 0}
                     >
                       {uploadedImages.length === 0 
                         ? 'Upload Clothes First' 
-                        : generatorType === 'paid' 
-                          ? 'Generate Premium Outfit' 
-                          : 'Generate Free Outfit'
+                        : 'Generate AI Outfit'
                       }
                     </button>
                   </div>
@@ -559,38 +480,30 @@ function App() {
               ) : (
                 /* Generated Outfit Results */
                 <div className="text-center">
-                  {/* Paid Generator Result */}
-                  {generatorType === 'paid' && generatedOutfit && (
-                    <>
-                      <h3 className="text-xl font-semibold text-purple-700 mb-4">Your Generated Outfit</h3>
-                      <div className="flex flex-col items-center gap-6">
-                        <div className="relative">
-                          <img 
-                            src={generatedOutfit} 
-                            alt="Generated Outfit" 
-                            className="w-64 h-64 object-cover rounded-lg border-4 border-purple-300"
-                          />
-                        </div>
-                        <div className="flex gap-4">
-                          <button 
-                            onClick={handleRegenerateOutfit}
-                            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                          >
-                            Generate Another
-                          </button>
-                          <button 
-                            onClick={() => {
-                              setGeneratedOutfit(null);
-                              setFreeOutfitImages(null);
-                            }}
-                            className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                          >
-                            Back to Wardrobe
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  <h3 className="text-xl font-semibold text-purple-700 mb-4">Your AI-Generated Outfit</h3>
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="relative">
+                      <img 
+                        src={generatedOutfit} 
+                        alt="Generated Outfit" 
+                        className="w-80 h-80 object-cover rounded-lg border-4 border-purple-300 shadow-xl"
+                      />
+                    </div>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={handleRegenerateOutfit}
+                        className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                      >
+                        Generate Another Outfit
+                      </button>
+                      <button 
+                        onClick={() => setGeneratedOutfit(null)}
+                        className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                      >
+                        Back to Wardrobe
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -722,75 +635,6 @@ function App() {
             </div>
           )}
         </div>
-
-        {/* SEPARATE FREE OUTFIT DISPLAY WINDOW - FULL SCREEN */}
-        {freeOutfitImages && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="bg-green-600 text-white p-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Your Selected Outfit Combination</h2>
-                  <button 
-                    onClick={() => setFreeOutfitImages(null)}
-                    className="text-white hover:text-green-200 text-2xl font-bold w-10 h-10 rounded-full hover:bg-green-700 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </div>
-                <p className="text-green-100 mt-2">
-                  Smart combination selected from your wardrobe • {freeOutfitImages.length} items
-                </p>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-auto p-6">
-                {/* Full-width responsive grid with maximum space */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 w-full">
-                  {freeOutfitImages.map((image, index) => (
-                    <div key={index} className="group">
-                      <div className="bg-white rounded-xl shadow-lg border-2 border-green-200 hover:border-green-400 hover:shadow-xl transition-all duration-300 p-4 h-full flex flex-col">
-                        <div className="flex-1 flex items-center justify-center min-h-[200px]">
-                          <img 
-                            src={image} 
-                            alt={`Outfit item ${index + 1}`}
-                            className="max-w-full max-h-48 object-contain rounded-lg"
-                          />
-                        </div>
-                        <div className="mt-3 text-center">
-                          <div className="text-sm font-semibold text-gray-700 bg-green-50 rounded-full px-3 py-1 inline-block">
-                            Item {index + 1}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="border-t border-gray-200 p-6 bg-gray-50">
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <button 
-                    onClick={handleRegenerateOutfit}
-                    className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-lg transition-all hover:scale-105"
-                  >
-                    🔄 Try Another Combination
-                  </button>
-                  <button 
-                    onClick={() => setFreeOutfitImages(null)}
-                    className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold text-lg transition-all"
-                  >
-                    ← Back to Wardrobe
-                  </button>
-                </div>
-                <p className="text-center text-gray-600 mt-4 text-sm">
-                  ✨ Each combination is uniquely selected from your wardrobe items
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
