@@ -727,15 +727,14 @@ function App() {
                     <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-3">
-                      {generatorMode === 'ai' ? 'Create Your Perfect Outfit' : 'Create Custom Outfit'}
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      {generatorMode === 'ai' 
-                        ? 'Let me create a stunning outfit for you that matches your selected event.'
-                        : 'Choose up to 8 specific clothing items from your wardrobe, and our AI will create an image using only your selected items.'
-                      }
-                    </p>
+                    {generatorMode === 'manual' && (
+                      <>
+                        <h3 className="text-lg font-semibold mb-3">Create Custom Outfit</h3>
+                        <p className="text-gray-600 mb-4">
+                          Choose up to 8 specific clothing items from your wardrobe, and our AI will create an image using only your selected items.
+                        </p>
+                      </>
+                    )}
                     <button 
                       onClick={handleGenerateOutfit}
                       className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
