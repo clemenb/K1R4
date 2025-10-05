@@ -35,6 +35,9 @@ function App() {
   const [editingItem, setEditingItem] = useState<{id: string; image: string; category: string; subcategory: string; confirmed: boolean} | null>(null);
   const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
   const [isCategorizing, setIsCategorizing] = useState(false);
+  const [manualSelectedItems, setManualSelectedItems] = useState<string[]>([]);
+  const [generatorMode, setGeneratorMode] = useState<'ai' | 'manual'>('ai');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const clothingCategories = {
@@ -129,11 +132,35 @@ function App() {
       return;
     }
     
-    if (!checkApiKeyBeforeGeneration()) {
-      return;
+    if (generatorMode === 'ai') {
+      if (!checkApiKeyBeforeGeneration()) {
+        return;
+      }
+      setShowEventModal(true);
+    } else {
+      // Manual mode - ensure at least one item is selected
+      if (manualSelectedItems.length === 0) {
+        alert('Please select at least one clothing item for your outfit!');
+        return;
+      }
+      if (!checkApiKeyBeforeGeneration()) {
+        return;
+      }
+      setShowEventModal(true);
     }
-    
-    setShowEventModal(true);
+  };
+
+  const toggleManualItemSelection = (itemId: string) => {
+    setManualSelectedItems(prev => {
+      if (prev.includes(itemId)) {
+        return prev.filter(id => id !== itemId);
+      } else if (prev.length < 8) {
+        return [...prev, itemId];
+      } else {
+        alert('You can select up to 8 items maximum for manual generation.');
+        return prev;
+      }
+    });
   };
 
   const handleEventSelect = async (eventType: string) => {
@@ -143,7 +170,13 @@ function App() {
     try {
       setGeneratedOutfit(null);
       
-      const generatedImage = await generateOutfitWithGemini(uploadedImages, selectedAvatar, eventType);
+      let imagesToUse = uploadedImages;
+      if (generatorMode === 'manual') {
+        // Use only manually selected items
+        imagesToUse = uploadedImages.filter(item => manualSelectedItems.includes(item.id));
+      }
+      
+      const generatedImage = await generateOutfitWithGemini(imagesToUse, selectedAvatar, eventType);
       if (generatedImage === 'error') {
         throw new Error('Outfit generation failed');
       }
@@ -590,16 +623,97 @@ function App() {
 
           {activeTab === 'outfit' && (
             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-xl">
-              <h2 className="text-2xl font-bold text-purple-700 mb-6">AI Outfit Generation</h2>
+              <h2 className="text-2xl font-bold text-purple-700 mb-6">Outfit Generation</h2>
               
-              {/* No Generator Selection - Only AI Generation */}
+              {/* Generator Mode Selection */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">Premium AI Outfit Generation</h3>
-                <p className="text-gray-600 mb-4">
-                  Create high-quality anime-style outfits with our premium AI service. 
-                  Upload your clothing items and let our AI create perfect outfits for any occasion.
-                </p>
+                <div className="flex gap-4 mb-4">
+                  <button
+                    onClick={() => setGeneratorMode('ai')}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      generatorMode === 'ai' 
+                        ? 'bg-purple-600 text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    🤖 AI Generator
+                  </button>
+                  <button
+                    onClick={() => setGeneratorMode('manual')}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      generatorMode === 'manual' 
+                        ? 'bg-purple-600 text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    👤 Manual Generator
+                  </button>
+                </div>
+
+                {generatorMode === 'ai' ? (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Premium AI Outfit Generation</h3>
+                    <p className="text-gray-600 mb-4">
+                      Our AI will analyze your clothing items and create stunning anime-style outfits 
+                      that match your selected event type and personal style.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Manual Outfit Selection</h3>
+                    <p className="text-gray-600 mb-4">
+                      Choose up to 8 specific clothing items from your wardrobe, and our AI will create 
+                      an anime-style outfit using only your selected items.
+                    </p>
+                    {manualSelectedItems.length > 0 && (
+                      <p className="text-sm text-purple-600 mb-2">
+                        Selected: {manualSelectedItems.length}/8 items
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
+              
+              {/* Manual Selection Wardrobe */}
+              {generatorMode === 'manual' && (
+                <div className="mb-6">
+                  <h4 className="text-md font-semibold mb-3">Select Items for Your Outfit (max 8):</h4>
+                  {uploadedImages.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                      {uploadedImages.map((item, index) => (
+                        <div key={item.id} className="relative group">
+                          <img 
+                            src={item.image} 
+                            alt={`Wardrobe item ${index + 1}`}
+                            className={`w-full h-32 object-cover rounded-lg border-2 cursor-pointer ${
+                              manualSelectedItems.includes(item.id) 
+                                ? 'border-green-500 ring-2 ring-green-300' 
+                                : 'border-purple-200'
+                            }`}
+                            onClick={() => toggleManualItemSelection(item.id)}
+                          />
+                          <div className="absolute top-1 right-1">
+                            {manualSelectedItems.includes(item.id) && (
+                              <div className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">
+                                ✓
+                              </div>
+                            )}
+                          </div>
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center gap-1">
+                            <span className="text-white text-xs bg-black/70 px-2 py-1 rounded">
+                              {item.category} - {item.subcategory}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No items in your wardrobe yet. Upload some clothing items first!</p>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* No Generated Outfit State */}
               {!generatedOutfit ? (
@@ -613,19 +727,28 @@ function App() {
                     <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-3">Create Your Perfect Outfit</h3>
+                    <h3 className="text-lg font-semibold mb-3">
+                      {generatorMode === 'ai' ? 'Create Your Perfect Outfit' : 'Create Custom Outfit'}
+                    </h3>
                     <p className="text-gray-600 mb-4">
-                      Our AI will analyze your clothing items and create stunning anime-style outfits 
-                      that match your selected event type and personal style.
+                      {generatorMode === 'ai' 
+                        ? 'Our AI will analyze your clothing items and create stunning anime-style outfits that match your selected event type and personal style.'
+                        : 'Our AI will create an anime-style outfit using only the items you selected, perfect for your chosen event.'
+                      }
                     </p>
                     <button 
                       onClick={handleGenerateOutfit}
                       className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                      disabled={uploadedImages.length === 0}
+                      disabled={
+                        uploadedImages.length === 0 || 
+                        (generatorMode === 'manual' && manualSelectedItems.length === 0)
+                      }
                     >
                       {uploadedImages.length === 0 
                         ? 'Upload Clothes First' 
-                        : 'Generate AI Outfit'
+                        : generatorMode === 'manual' && manualSelectedItems.length === 0
+                        ? 'Select Items First'
+                        : `Generate ${generatorMode === 'ai' ? 'AI' : 'Manual'} Outfit`
                       }
                     </button>
                   </div>
@@ -633,7 +756,9 @@ function App() {
               ) : (
                 /* Generated Outfit Results */
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-purple-700 mb-4">Your AI-Generated Outfit</h3>
+                  <h3 className="text-xl font-semibold text-purple-700 mb-4">
+                    Your {generatorMode === 'ai' ? 'AI-Generated' : 'Manual'} Outfit
+                  </h3>
                   <div className="flex flex-col items-center gap-6">
                     <div className="relative">
                       <img 
@@ -786,101 +911,103 @@ function App() {
                 </div>
               )}
 
-              {/* Categorization Modal */}
-              {editingItem && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
-                  <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                    <h3 className="text-xl font-bold text-purple-700 mb-4">Categorize Clothing Item</h3>
-                    
-                    <div className="flex flex-col items-center mb-6">
-                      <img 
-                        src={editingItem.image} 
-                        alt="Item to categorize"
-                        className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300 mb-4"
-                      />
-                      
-                      {!selectedMainCategory ? (
-                        <div className="grid grid-cols-2 gap-2 w-full">
-                          {Object.keys(clothingCategories).map((category) => (
-                            <button
-                              key={category}
-                              onClick={() => setSelectedMainCategory(category)}
-                              className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
-                            >
-                              {category}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="w-full">
-                          <div className="flex items-center gap-2 mb-4">
-                            <button 
-                              onClick={() => setSelectedMainCategory(null)}
-                              className="text-purple-600 hover:text-purple-800 text-sm"
-                            >
-                              ← Back
-                            </button>
-                            <h4 className="font-semibold text-purple-700">Select {selectedMainCategory} type:</h4>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 w-full">
-                            {clothingCategories[selectedMainCategory as keyof typeof clothingCategories].map((subcategory) => (
-                              <button
-                                key={subcategory}
-                                onClick={() => handleUpdateCategory(editingItem.id, selectedMainCategory, subcategory)}
-                                className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs"
-                              >
-                                {subcategory}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="border-t border-gray-200 pt-4">
-                      <p className="text-sm text-gray-600 mb-3">Or use AI to categorize (requires API key):</p>
-                      <button 
-                        onClick={() => categorizeWithAI(editingItem.id, editingItem.image)}
-                        disabled={!apiKey || isCategorizing}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2"
-                      >
-                        {isCategorizing ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            AI Categorizing...
-                          </>
-                        ) : (
-                          '🤖 Use AI to Categorize'
-                        )}
-                      </button>
-                    </div>
-
-                    <button 
-                      onClick={() => setEditingItem(null)}
-                      className="mt-4 w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* AI Categorization Loading */}
-              {isCategorizing && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
-                  <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                      <h3 className="text-lg font-semibold text-blue-700 mb-2">AI Categorizing Your Item</h3>
-                      <p className="text-gray-600">Analyzing clothing item to determine category...</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Categorization Modal - Moved outside tabs to be accessible from wardrobe */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-purple-700 mb-4">Categorize Clothing Item</h3>
+            
+            <div className="flex flex-col items-center mb-6">
+              <img 
+                src={editingItem.image} 
+                alt="Item to categorize"
+                className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300 mb-4"
+              />
+              
+              {!selectedMainCategory ? (
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  {Object.keys(clothingCategories).map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedMainCategory(category)}
+                      className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full">
+                  <div className="flex items-center gap-2 mb-4">
+                    <button 
+                      onClick={() => setSelectedMainCategory(null)}
+                      className="text-purple-600 hover:text-purple-800 text-sm"
+                    >
+                      ← Back
+                    </button>
+                    <h4 className="font-semibold text-purple-700">Select {selectedMainCategory} type:</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                    {clothingCategories[selectedMainCategory as keyof typeof clothingCategories].map((subcategory) => (
+                      <button
+                        key={subcategory}
+                        onClick={() => handleUpdateCategory(editingItem.id, selectedMainCategory, subcategory)}
+                        className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs"
+                      >
+                        {subcategory}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <p className="text-sm text-gray-600 mb-3">Or use AI to categorize (requires API key):</p>
+              <button 
+                onClick={() => categorizeWithAI(editingItem.id, editingItem.image)}
+                disabled={!apiKey || isCategorizing}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2"
+              >
+                {isCategorizing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    AI Categorizing...
+                  </>
+                ) : (
+                  '🤖 Use AI to Categorize'
+                )}
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setEditingItem(null)}
+              className="mt-4 w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Categorization Loading */}
+      {isCategorizing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-blue-700 mb-2">AI Categorizing Your Item</h3>
+              <p className="text-gray-600">Analyzing clothing item to determine category...</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
