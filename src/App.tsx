@@ -236,6 +236,14 @@ function App() {
     setShowApiKeyModal(false);
   };
 
+  const handleRemoveItem = (itemId: string) => {
+    setUploadedImages(prev => {
+      const updated = prev.filter(item => item.id !== itemId);
+      localStorage.setItem('wardrobe_images', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const handleRemoveApiKey = () => {
     localStorage.removeItem('gemini_api_key');
     setApiKey('');
@@ -531,7 +539,7 @@ function App() {
                               Edit
                             </button>
                             <button 
-                              onClick={() => setUploadedImages(prev => prev.filter((_, i) => i !== index))}
+                              onClick={() => handleRemoveItem(item.id)}
                               className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-sm"
                             >
                               Remove
