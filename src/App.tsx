@@ -697,7 +697,9 @@ function App() {
                               </div>
                             )}
                           </div>
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center gap-1">
+                          <div 
+                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center gap-1 pointer-events-none"
+                          >
                             <span className="text-white text-xs bg-black/70 px-2 py-1 rounded">
                               {item.category} - {item.subcategory}
                             </span>
