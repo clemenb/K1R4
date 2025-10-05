@@ -10,11 +10,20 @@ function App() {
     id: string;
     image: string;
     category: string;
+    subcategory: string;
     confirmed: boolean;
   }>>(() => {
     // Load uploaded images from localStorage
     const saved = localStorage.getItem('wardrobe_images');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migrate old data to include subcategory field
+      return parsed.map((item: any) => ({
+        ...item,
+        subcategory: item.subcategory || 'Other'
+      }));
+    }
+    return [];
   });
   const [showEventModal, setShowEventModal] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<string | null>(null);
@@ -23,13 +32,21 @@ function App() {
   const [apiKey, setApiKey] = useState<string>(() => {
     return localStorage.getItem('gemini_api_key') || '';
   });
-  const [editingItem, setEditingItem] = useState<{id: string; image: string; category: string; confirmed: boolean} | null>(null);
+  const [editingItem, setEditingItem] = useState<{id: string; image: string; category: string; subcategory: string; confirmed: boolean} | null>(null);
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
   const [isCategorizing, setIsCategorizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const clothingCategories = [
-    'Head-cover', 'Top', 'Belts', 'Bottom', 'Shoes', 'Underwear', 'Accessories', 'Other'
-  ];
+  const clothingCategories = {
+    'Head-cover': ['Hats', 'Caps', 'Beanies', 'Headbands', 'Scarves', 'Turbans', 'Hijabs', 'Other'],
+    'Top': ['T-Shirt', 'Shirt', 'Blouse', 'Sweater', 'Hoodie', 'Jacket', 'Coat', 'Tank Top', 'Crop Top', 'Polo Shirt', 'Dress Shirt', 'Other'],
+    'Belts': ['Leather Belt', 'Fabric Belt', 'Chain Belt', 'Waist Belt', 'Other'],
+    'Bottom': ['Jeans', 'Trousers', 'Shorts', 'Skirt', 'Dress', 'Leggings', 'Sweatpants', 'Cargo Pants', 'Other'],
+    'Shoes': ['Sneakers', 'Boots', 'Sandals', 'Loafers', 'Heels', 'Flats', 'Ballerinas', 'Running Shoes', 'Basketball Shoes', 'Dress Shoes', 'Other'],
+    'Underwear': ['Bra', 'Panties', 'Boxers', 'Briefs', 'Undershirt', 'Other'],
+    'Accessories': ['Necklace', 'Bracelet', 'Earrings', 'Ring', 'Watch', 'Sunglasses', 'Glasses', 'Bag', 'Backpack', 'Wallet', 'Other'],
+    'Other': ['Swimwear', 'Sportswear', 'Sleepwear', 'Costume', 'Other']
+  };
 
   const backgrounds = [
     { value: '/backgrounds/mbckgrd1.jpg', label: 'African Style', avatar: '/avatars/avatar_01.jpeg' },
@@ -63,6 +80,7 @@ function App() {
               id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
               image: e.target.result as string,
               category: 'Unknown',
+              subcategory: 'Other',
               confirmed: false
             };
             setUploadedImages(prev => {
@@ -258,14 +276,15 @@ function App() {
   };
 
   // Categorization functions
-  const handleEditCategory = (item: {id: string; image: string; category: string; confirmed: boolean}) => {
+  const handleEditCategory = (item: {id: string; image: string; category: string; subcategory: string; confirmed: boolean}) => {
     setEditingItem(item);
+    setSelectedMainCategory(null);
   };
 
-  const handleUpdateCategory = (itemId: string, newCategory: string) => {
+  const handleUpdateCategory = (itemId: string, newCategory: string, newSubcategory: string = 'Other') => {
     setUploadedImages(prev => {
       const updated = prev.map(item => 
-        item.id === itemId ? { ...item, category: newCategory, confirmed: true } : item
+        item.id === itemId ? { ...item, category: newCategory, subcategory: newSubcategory, confirmed: true } : item
       );
       localStorage.setItem('wardrobe_images', JSON.stringify(updated));
       return updated;
@@ -526,11 +545,18 @@ function App() {
                           }`}
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center gap-2">
-                          <span className={`text-white text-xs px-2 py-1 rounded ${
-                            item.confirmed ? 'bg-green-600' : 'bg-yellow-600'
-                          }`}>
-                            {item.category} {item.confirmed ? '✓' : '?'}
-                          </span>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className={`text-white text-xs px-2 py-1 rounded ${
+                              item.confirmed ? 'bg-green-600' : 'bg-yellow-600'
+                            }`}>
+                              {item.category} {item.confirmed ? '✓' : '?'}
+                            </span>
+                            {item.category !== 'Unknown' && (
+                              <span className="text-white text-xs bg-blue-600 px-2 py-1 rounded">
+                                {item.subcategory}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex gap-1">
                             <button 
                               onClick={() => handleEditCategory(item)}
@@ -773,17 +799,42 @@ function App() {
                         className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300 mb-4"
                       />
                       
-                      <div className="grid grid-cols-2 gap-2 w-full">
-                        {clothingCategories.map((category) => (
-                          <button
-                            key={category}
-                            onClick={() => handleUpdateCategory(editingItem.id, category)}
-                            className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
-                          >
-                            {category}
-                          </button>
-                        ))}
-                      </div>
+                      {!selectedMainCategory ? (
+                        <div className="grid grid-cols-2 gap-2 w-full">
+                          {Object.keys(clothingCategories).map((category) => (
+                            <button
+                              key={category}
+                              onClick={() => setSelectedMainCategory(category)}
+                              className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+                            >
+                              {category}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                          <div className="flex items-center gap-2 mb-4">
+                            <button 
+                              onClick={() => setSelectedMainCategory(null)}
+                              className="text-purple-600 hover:text-purple-800 text-sm"
+                            >
+                              ← Back
+                            </button>
+                            <h4 className="font-semibold text-purple-700">Select {selectedMainCategory} type:</h4>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 w-full">
+                            {clothingCategories[selectedMainCategory as keyof typeof clothingCategories].map((subcategory) => (
+                              <button
+                                key={subcategory}
+                                onClick={() => handleUpdateCategory(editingItem.id, selectedMainCategory, subcategory)}
+                                className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs"
+                              >
+                                {subcategory}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="border-t border-gray-200 pt-4">
