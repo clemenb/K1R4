@@ -6,7 +6,12 @@ function App() {
   const [selectedBackground, setSelectedBackground] = useState('/backgrounds/mbckgrd1.jpg');
   const [selectedAvatar, setSelectedAvatar] = useState('/avatars/avatar_01.jpeg');
   const [showBackgroundMenu, setShowBackgroundMenu] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>(() => {
+  const [uploadedImages, setUploadedImages] = useState<Array<{
+    id: string;
+    image: string;
+    category: string;
+    confirmed: boolean;
+  }>>(() => {
     // Load uploaded images from localStorage
     const saved = localStorage.getItem('wardrobe_images');
     return saved ? JSON.parse(saved) : [];
@@ -18,7 +23,13 @@ function App() {
   const [apiKey, setApiKey] = useState<string>(() => {
     return localStorage.getItem('gemini_api_key') || '';
   });
+  const [editingItem, setEditingItem] = useState<{id: string; image: string; category: string; confirmed: boolean} | null>(null);
+  const [isCategorizing, setIsCategorizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const clothingCategories = [
+    'Head-cover', 'Top', 'Belts', 'Bottom', 'Shoes', 'Underwear', 'Accessories', 'Other'
+  ];
 
   const backgrounds = [
     { value: '/backgrounds/mbckgrd1.jpg', label: 'African Style', avatar: '/avatars/avatar_01.jpeg' },
@@ -27,10 +38,8 @@ function App() {
   ];
 
   const eventTypes = [
-    'Casual', 'Work/Office', 'Party/Night Out', 'Date Night', 'Formal/Black Tie',
-    'Business Meeting', 'Brunch', 'Beach/Vacation', 'Workout/Athletic', 'Coffee Date',
-    'Shopping', 'Dinner', 'Wedding', 'Interview', 'Cocktail Party',
-    'Festival/Concert', 'Weekend Getaway', 'Graduation', 'Birthday Celebration', 'Gala'
+    'Casual', 'Sporty', 'Classic', 'Romantic', 'Work/Office', 
+    'Date/Party', 'Business', 'Sports/Workout', 'Wandering/Hiking'
   ];
 
   const handleBackgroundChange = (backgroundValue: string) => {
@@ -50,8 +59,14 @@ function App() {
         const reader = new FileReader();
         reader.onload = (e) => {
           if (e.target?.result) {
+            const newItem = {
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              image: e.target.result as string,
+              category: 'Unknown',
+              confirmed: false
+            };
             setUploadedImages(prev => {
-              const updated = [...prev, e.target!.result as string];
+              const updated = [...prev, newItem];
               localStorage.setItem('wardrobe_images', JSON.stringify(updated));
               return updated;
             });
@@ -124,7 +139,7 @@ function App() {
     }
   };
 
-  const generateOutfitWithGemini = async (clothingImages: string[], avatarImage: string, eventType: string) => {
+  const generateOutfitWithGemini = async (clothingImages: Array<{id: string; image: string; category: string; confirmed: boolean}>, avatarImage: string, eventType: string) => {
     console.log(`Using Gemini 2.5 Flash Image for ${eventType} event`);
     
     try {
@@ -133,7 +148,9 @@ function App() {
         model: "gemini-2.5-flash-image" 
       });
 
-      const prompt = "Make the full body avatar wear the cloths in an anime style image.";
+      // Create a prompt that uses the categorized clothing
+      const clothingCategories = clothingImages.map(item => item.category).filter(cat => cat !== 'Unknown');
+      const prompt = `Create an anime-style outfit for a ${eventType} event using these clothing categories: ${clothingCategories.join(', ')}. Make the full body avatar wear appropriate clothing combinations for this occasion.`;
 
       const base64ToGenerativePart = (base64Data: string, mimeType: string) => {
         const base64WithoutPrefix = base64Data.includes('base64,') 
@@ -152,9 +169,11 @@ function App() {
         base64ToGenerativePart(avatarImage, 'image/jpeg')
       ];
 
-      clothingImages.forEach(img => {
-        imageParts.push(base64ToGenerativePart(img, 'image/jpeg'));
-      });
+      // Only use confirmed and categorized items for generation
+      clothingImages.filter(item => item.confirmed && item.category !== 'Unknown')
+                   .forEach(item => {
+                     imageParts.push(base64ToGenerativePart(item.image, 'image/jpeg'));
+                   });
 
       console.log('Sending request to Gemini 2.5 Flash Image...');
 
@@ -229,6 +248,78 @@ function App() {
     }
     return true;
   };
+
+  // Categorization functions
+  const handleEditCategory = (item: {id: string; image: string; category: string; confirmed: boolean}) => {
+    setEditingItem(item);
+  };
+
+  const handleUpdateCategory = (itemId: string, newCategory: string) => {
+    setUploadedImages(prev => {
+      const updated = prev.map(item => 
+        item.id === itemId ? { ...item, category: newCategory, confirmed: true } : item
+      );
+      localStorage.setItem('wardrobe_images', JSON.stringify(updated));
+      return updated;
+    });
+    setEditingItem(null);
+  };
+
+  const categorizeWithAI = async (itemId: string, imageData: string) => {
+    if (!checkApiKeyBeforeGeneration()) {
+      return;
+    }
+
+    setIsCategorizing(true);
+    
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash"  // Using text model for categorization
+      });
+
+      const prompt = `Analyze this clothing item image and categorize it into exactly one of these categories: Head-cover, Top, Belts, Bottom, Shoes, Underwear, Accessories, Other. Only respond with the category name, nothing else.`;
+
+      const base64ToGenerativePart = (base64Data: string, mimeType: string) => {
+        const base64WithoutPrefix = base64Data.includes('base64,') 
+          ? base64Data.split('base64,')[1] 
+          : base64Data;
+        
+        return {
+          inlineData: {
+            data: base64WithoutPrefix,
+            mimeType: mimeType
+          }
+        };
+      };
+
+      const imagePart = base64ToGenerativePart(imageData, 'image/jpeg');
+      
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      const category = response.text().trim();
+
+      // Validate the category
+      const validCategories = ['Head-cover', 'Top', 'Belts', 'Bottom', 'Shoes', 'Underwear', 'Accessories', 'Other'];
+      const finalCategory = validCategories.includes(category) ? category : 'Other';
+
+      setUploadedImages(prev => {
+        const updated = prev.map(item => 
+          item.id === itemId ? { ...item, category: finalCategory, confirmed: false } : item
+        );
+        localStorage.setItem('wardrobe_images', JSON.stringify(updated));
+        return updated;
+      });
+
+    } catch (error) {
+      console.error('AI categorization failed:', error);
+      alert('AI categorization failed. Please categorize manually.');
+    } finally {
+      setIsCategorizing(false);
+    }
+  };
+
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -402,22 +493,50 @@ function App() {
 
               {uploadedImages.length > 0 && (
                 <div className="mt-8">
-                  <h3 className="text-xl font-semibold text-purple-700 mb-4">Your Wardrobe ({uploadedImages.length} items)</h3>
+                  <h3 className="text-xl font-semibold text-purple-700 mb-4">
+                    Your Wardrobe ({uploadedImages.filter(item => item.confirmed).length} categorized / {uploadedImages.length} total)
+                  </h3>
+                  
+                  {/* Categorization Instructions */}
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+                    <h4 className="font-semibold text-purple-700 mb-2">How to categorize your clothes:</h4>
+                    <ol className="list-decimal list-inside text-sm text-purple-600 space-y-1">
+                      <li>Click on any item to categorize it</li>
+                      <li>Choose from: Head-cover, Top, Belts, Bottom, Shoes, Underwear, Accessories, Other</li>
+                      <li>Only categorized items will be used for outfit generation</li>
+                    </ol>
+                  </div>
+
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {uploadedImages.map((image, index) => (
-                      <div key={index} className="relative group">
+                    {uploadedImages.map((item, index) => (
+                      <div key={item.id} className="relative group">
                         <img 
-                          src={image} 
+                          src={item.image} 
                           alt={`Wardrobe item ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border-2 border-purple-200"
+                          className={`w-full h-32 object-cover rounded-lg border-2 ${
+                            item.confirmed ? 'border-green-500' : 'border-purple-200'
+                          }`}
                         />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                          <button 
-                            onClick={() => setUploadedImages(prev => prev.filter((_, i) => i !== index))}
-                            className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-sm"
-                          >
-                            Remove
-                          </button>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center gap-2">
+                          <span className={`text-white text-xs px-2 py-1 rounded ${
+                            item.confirmed ? 'bg-green-600' : 'bg-yellow-600'
+                          }`}>
+                            {item.category} {item.confirmed ? '✓' : '?'}
+                          </span>
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => handleEditCategory(item)}
+                              className="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-sm"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => setUploadedImages(prev => prev.filter((_, i) => i !== index))}
+                              className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -628,6 +747,73 @@ function App() {
                       >
                         Cancel
                       </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Categorization Modal */}
+              {editingItem && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+                  <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                    <h3 className="text-xl font-bold text-purple-700 mb-4">Categorize Clothing Item</h3>
+                    
+                    <div className="flex flex-col items-center mb-6">
+                      <img 
+                        src={editingItem.image} 
+                        alt="Item to categorize"
+                        className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300 mb-4"
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-2 w-full">
+                        {clothingCategories.map((category) => (
+                          <button
+                            key={category}
+                            onClick={() => handleUpdateCategory(editingItem.id, category)}
+                            className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-4">
+                      <p className="text-sm text-gray-600 mb-3">Or use AI to categorize (requires API key):</p>
+                      <button 
+                        onClick={() => categorizeWithAI(editingItem.id, editingItem.image)}
+                        disabled={!apiKey || isCategorizing}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2"
+                      >
+                        {isCategorizing ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            AI Categorizing...
+                          </>
+                        ) : (
+                          '🤖 Use AI to Categorize'
+                        )}
+                      </button>
+                    </div>
+
+                    <button 
+                      onClick={() => setEditingItem(null)}
+                      className="mt-4 w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Categorization Loading */}
+              {isCategorizing && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+                  <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 mb-2">AI Categorizing Your Item</h3>
+                      <p className="text-gray-600">Analyzing clothing item to determine category...</p>
                     </div>
                   </div>
                 </div>
