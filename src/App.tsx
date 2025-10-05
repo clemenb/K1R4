@@ -41,7 +41,7 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const clothingCategories = {
-    'Head-cover': ['Hats', 'Caps', 'Beanies', 'Headbands', 'Scarves', 'Turbans', 'Hijabs', 'Other'],
+    'Head-cover': ['Hats', 'Caps', 'Beanies', 'Headbands', 'Scarves', 'Turbans', 'Hijabs', 'Headwrap', 'Other'],
     'Top': ['T-Shirt', 'Shirt', 'Blouse', 'Sweater', 'Hoodie', 'Jacket', 'Coat', 'Tank Top', 'Crop Top', 'Polo Shirt', 'Dress Shirt', 'Other'],
     'Belts': ['Leather Belt', 'Fabric Belt', 'Chain Belt', 'Waist Belt', 'Other'],
     'Bottom': ['Jeans', 'Trousers', 'Shorts', 'Skirt', 'Dress', 'Leggings', 'Sweatpants', 'Cargo Pants', 'Other'],
@@ -652,18 +652,16 @@ function App() {
 
                 {generatorMode === 'ai' ? (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Premium AI Outfit Generation</h3>
+                    <h3 className="text-lg font-semibold mb-3">AI Generator</h3>
                     <p className="text-gray-600 mb-4">
-                      Our AI will analyze your clothing items and create stunning anime-style outfits 
-                      that match your selected event type and personal style.
+                      Let me create a stunning outfit for you that matches your selected event.
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Manual Outfit Selection</h3>
+                    <h3 className="text-lg font-semibold mb-3">Manual Generator</h3>
                     <p className="text-gray-600 mb-4">
-                      Choose up to 8 specific clothing items from your wardrobe, and our AI will create 
-                      an anime-style outfit using only your selected items.
+                      Choose up to 8 specific clothing items from your wardrobe, and our AI will create an image using only your selected items.
                     </p>
                     {manualSelectedItems.length > 0 && (
                       <p className="text-sm text-purple-600 mb-2">
@@ -732,8 +730,8 @@ function App() {
                     </h3>
                     <p className="text-gray-600 mb-4">
                       {generatorMode === 'ai' 
-                        ? 'Our AI will analyze your clothing items and create stunning anime-style outfits that match your selected event type and personal style.'
-                        : 'Our AI will create an anime-style outfit using only the items you selected, perfect for your chosen event.'
+                        ? 'Let me create a stunning outfit for you that matches your selected event.'
+                        : 'Choose up to 8 specific clothing items from your wardrobe, and our AI will create an image using only your selected items.'
                       }
                     </p>
                     <button 
