@@ -146,7 +146,32 @@ function App() {
       if (!checkApiKeyBeforeGeneration()) {
         return;
       }
-      setShowEventModal(true);
+      // For manual mode, generate directly without event selection
+      handleManualOutfitGeneration();
+    }
+  };
+
+  const handleManualOutfitGeneration = async () => {
+    setIsGenerating(true);
+    
+    try {
+      setGeneratedOutfit(null);
+      
+      // Use only manually selected items
+      const imagesToUse = uploadedImages.filter(item => manualSelectedItems.includes(item.id));
+      
+      // Generate without specific event type
+      const generatedImage = await generateOutfitWithGemini(imagesToUse, selectedAvatar, 'Custom');
+      if (generatedImage === 'error') {
+        throw new Error('Outfit generation failed');
+      }
+      setGeneratedOutfit(generatedImage);
+    } catch (error) {
+      console.error('Outfit generation failed:', error);
+      alert('Outfit generation failed. Please try again.');
+      setGeneratedOutfit(selectedAvatar);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -726,31 +751,23 @@ function App() {
                     />
                     <p className="text-center mt-2 text-sm text-gray-600">Your Avatar</p>
                   </div>
-                  <div className="flex-1">
-                    {generatorMode === 'manual' && (
-                      <>
-                        <h3 className="text-lg font-semibold mb-3">Create Custom Outfit</h3>
-                        <p className="text-gray-600 mb-4">
-                          Choose up to 8 specific clothing items from your wardrobe, and our AI will create an image using only your selected items.
-                        </p>
-                      </>
-                    )}
-                    <button 
-                      onClick={handleGenerateOutfit}
-                      className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                      disabled={
-                        uploadedImages.length === 0 || 
-                        (generatorMode === 'manual' && manualSelectedItems.length === 0)
-                      }
-                    >
-                      {uploadedImages.length === 0 
-                        ? 'Upload Clothes First' 
-                        : generatorMode === 'manual' && manualSelectedItems.length === 0
-                        ? 'Select Items First'
-                        : `Generate ${generatorMode === 'ai' ? 'AI' : 'Manual'} Outfit`
-                      }
-                    </button>
-                  </div>
+                  <button 
+                    onClick={handleGenerateOutfit}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    disabled={
+                      uploadedImages.length === 0 || 
+                      (generatorMode === 'manual' && manualSelectedItems.length === 0)
+                    }
+                  >
+                    {uploadedImages.length === 0 
+                      ? 'Upload Clothes First' 
+                      : generatorMode === 'manual' && manualSelectedItems.length === 0
+                      ? 'Select Items First'
+                      : generatorMode === 'manual'
+                      ? 'Create image from chosen clothes'
+                      : 'Generate AI Outfit'
+                    }
+                  </button>
                 </div>
               ) : (
                 /* Generated Outfit Results */
